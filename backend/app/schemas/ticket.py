@@ -1,7 +1,9 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.ticket import TicketPriority, TicketStatus
+from app.schemas.category import CategoryReference
 from app.schemas.types import UtcDateTime
+from app.schemas.user import UserReference
 
 
 class TicketMutationRequest(BaseModel):
@@ -63,8 +65,11 @@ class TicketResponse(BaseModel):
     status: TicketStatus
     priority: TicketPriority
     category_id: int
+    category: CategoryReference
     created_by_id: int
+    created_by: UserReference = Field(validation_alias="creator")
     assigned_to_id: int | None
+    assigned_to: UserReference | None = Field(validation_alias="assignee")
     created_at: UtcDateTime
     updated_at: UtcDateTime
     resolved_at: UtcDateTime | None

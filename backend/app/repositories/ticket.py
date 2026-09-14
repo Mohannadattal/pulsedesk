@@ -1,8 +1,10 @@
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
+from app.models.category import Category
 from app.models.ticket import Ticket, TicketPriority, TicketStatus
+from app.models.user import User
 from app.repositories.exceptions import (
     DuplicateTicketNumberError,
     is_mysql_duplicate_constraint,
@@ -10,6 +12,22 @@ from app.repositories.exceptions import (
 
 
 TICKET_NUMBER_UNIQUE_CONSTRAINT = "uq_tickets_ticket_number"
+TICKET_DISPLAY_REFERENCE_OPTIONS = (
+    joinedload(Ticket.category, innerjoin=True).load_only(
+        Category.id,
+        Category.name,
+    ),
+    joinedload(Ticket.creator, innerjoin=True).load_only(
+        User.id,
+        User.first_name,
+        User.last_name,
+    ),
+    joinedload(Ticket.assignee).load_only(
+        User.id,
+        User.first_name,
+        User.last_name,
+    ),
+)
 
 
 class TicketRepository:
@@ -26,9 +44,22 @@ class TicketRepository:
         *,
         created_by_id: int | None,
     ) -> Ticket | None:
-        statement = select(Ticket).where(Ticket.id == ticket_id)
+        statement = (
+            select(Ticket)
+            .options(*TICKET_DISPLAY_REFERENCE_OPTIONS)
+            .where(Ticket.id == ticket_id)
+        )
         if created_by_id is not None:
             statement = statement.where(Ticket.created_by_id == created_by_id)
+        return self.db.scalar(statement)
+
+    def get_by_id_with_display_references(self, ticket_id: int) -> Ticket | None:
+        statement = (
+            select(Ticket)
+            .options(*TICKET_DISPLAY_REFERENCE_OPTIONS)
+            .where(Ticket.id == ticket_id)
+            .execution_options(populate_existing=True)
+        )
         return self.db.scalar(statement)
 
     def list(
@@ -64,6 +95,7 @@ class TicketRepository:
 
         statement = (
             select(Ticket)
+            .options(*TICKET_DISPLAY_REFERENCE_OPTIONS)
             .where(*conditions)
             .order_by(Ticket.created_at.desc(), Ticket.id.desc())
             .offset((page - 1) * page_size)

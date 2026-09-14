@@ -5,6 +5,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.schemas.types import UtcDateTime
 
 
+class CategoryReference(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+
+
 class CategoryCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

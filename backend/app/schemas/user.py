@@ -4,6 +4,14 @@ from app.models.user import UserRole
 from app.schemas.types import UtcDateTime
 
 
+class UserReference(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    first_name: str
+    last_name: str
+
+
 class UserBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

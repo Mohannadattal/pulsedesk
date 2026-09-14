@@ -80,8 +80,7 @@ class TicketService:
                     event_type=TicketEventType.TICKET_CREATED,
                     created_at=now,
                 )
-                self.db.commit()
-                return ticket
+                return self._commit_with_display_references(ticket)
             except DuplicateTicketNumberError as error:
                 self.db.rollback()
                 last_collision = error
@@ -156,8 +155,7 @@ class TicketService:
 
             old_assigned_to_id = ticket.assigned_to_id
             if old_assigned_to_id == assigned_to_id:
-                self.db.commit()
-                return ticket
+                return self._commit_with_display_references(ticket)
 
             ticket.assigned_to_id = assigned_to_id
             return self._save_and_commit(
@@ -183,8 +181,7 @@ class TicketService:
             ticket = self._get_ticket(ticket_id)
             old_priority = ticket.priority
             if old_priority == priority.value:
-                self.db.commit()
-                return ticket
+                return self._commit_with_display_references(ticket)
 
             ticket.priority = priority.value
             return self._save_and_commit(
@@ -253,8 +250,7 @@ class TicketService:
             self._get_active_category(category_id)
             old_category_id = ticket.category_id
             if old_category_id == category_id:
-                self.db.commit()
-                return ticket
+                return self._commit_with_display_references(ticket)
 
             ticket.category_id = category_id
             return self._save_and_commit(
@@ -313,8 +309,16 @@ class TicketService:
                 event_type=lifecycle_event_type,
                 created_at=event_created_at,
             )
+        return self._commit_with_display_references(ticket)
+
+    def _commit_with_display_references(self, ticket: Ticket) -> Ticket:
+        response_ticket = self.ticket_repository.get_by_id_with_display_references(
+            ticket.id,
+        )
+        if response_ticket is None:
+            raise TicketNotFoundError(ticket.id)
         self.db.commit()
-        return ticket
+        return response_ticket
 
     @staticmethod
     def _serialize_id(value: int | None) -> str | None:
