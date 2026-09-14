@@ -9,10 +9,14 @@ from app.core.security import AccessTokenManager, password_hasher
 from app.dependencies.database import get_db
 from app.repositories.category import CategoryRepository
 from app.repositories.ticket import TicketRepository
+from app.repositories.ticket_comment import TicketCommentRepository
+from app.repositories.ticket_event import TicketEventRepository
 from app.repositories.user import UserRepository
 from app.services.auth import AuthenticationService
 from app.services.category import CategoryService
 from app.services.ticket import TicketService
+from app.services.ticket_comment import TicketCommentService
+from app.services.ticket_event import TicketEventRecorder, TicketEventService
 from app.services.user import UserService
 
 
@@ -54,12 +58,43 @@ def get_category_service(
     )
 
 
-def get_ticket_service(
-    db: Annotated[Session, Depends(get_db)],
+def _build_ticket_service(
+    db: Session,
+    ticket_event_repository: TicketEventRepository | None = None,
 ) -> TicketService:
+    event_repository = ticket_event_repository or TicketEventRepository(db)
     return TicketService(
         db=db,
         ticket_repository=TicketRepository(db),
         category_repository=CategoryRepository(db),
         user_repository=UserRepository(db),
+        ticket_event_recorder=TicketEventRecorder(event_repository),
+    )
+
+
+def get_ticket_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> TicketService:
+    return _build_ticket_service(db)
+
+
+def get_ticket_comment_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> TicketCommentService:
+    ticket_event_repository = TicketEventRepository(db)
+    return TicketCommentService(
+        db=db,
+        ticket_service=_build_ticket_service(db, ticket_event_repository),
+        ticket_comment_repository=TicketCommentRepository(db),
+        ticket_event_recorder=TicketEventRecorder(ticket_event_repository),
+    )
+
+
+def get_ticket_event_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> TicketEventService:
+    ticket_event_repository = TicketEventRepository(db)
+    return TicketEventService(
+        ticket_service=_build_ticket_service(db, ticket_event_repository),
+        ticket_event_repository=ticket_event_repository,
     )

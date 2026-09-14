@@ -14,12 +14,14 @@ from app.exceptions.ticket import (
     TicketNotFoundError,
 )
 from app.models.ticket import Ticket, TicketPriority, TicketStatus
+from app.models.ticket_event import TicketEventType
 from app.models.user import User, UserRole
 from app.repositories.category import CategoryRepository
 from app.repositories.exceptions import DuplicateTicketNumberError
 from app.repositories.ticket import TicketRepository
 from app.repositories.user import UserRepository
 from app.schemas.ticket import TicketCreate, TicketListFilters, TicketListResponse
+from app.services.ticket_event import TicketEventRecorder
 
 
 TICKET_NUMBER_ATTEMPTS = 3
@@ -46,11 +48,13 @@ class TicketService:
         ticket_repository: TicketRepository,
         category_repository: CategoryRepository,
         user_repository: UserRepository,
+        ticket_event_recorder: TicketEventRecorder,
     ) -> None:
         self.db = db
         self.ticket_repository = ticket_repository
         self.category_repository = category_repository
         self.user_repository = user_repository
+        self.ticket_event_recorder = ticket_event_recorder
 
     def create_ticket(self, data: TicketCreate, actor: User) -> Ticket:
         last_collision: DuplicateTicketNumberError | None = None
@@ -73,6 +77,12 @@ class TicketService:
             try:
                 self._get_active_category(data.category_id)
                 ticket = self.ticket_repository.save(ticket)
+                self.ticket_event_recorder.record(
+                    ticket_id=ticket.id,
+                    actor_id=actor.id,
+                    event_type=TicketEventType.TICKET_CREATED,
+                    created_at=now,
+                )
                 self.db.commit()
                 return ticket
             except DuplicateTicketNumberError as error:
@@ -146,8 +156,21 @@ class TicketService:
                     or assignee.role != UserRole.AGENT.value
                 ):
                     raise InvalidTicketAssigneeError(assigned_to_id)
+
+            old_assigned_to_id = ticket.assigned_to_id
+            if old_assigned_to_id == assigned_to_id:
+                self.db.commit()
+                return ticket
+
             ticket.assigned_to_id = assigned_to_id
-            return self._save_and_commit(ticket)
+            return self._save_and_commit(
+                ticket,
+                actor=actor,
+                event_type=TicketEventType.ASSIGNEE_CHANGED,
+                field_name="assigned_to_id",
+                old_value=self._serialize_id(old_assigned_to_id),
+                new_value=self._serialize_id(assigned_to_id),
+            )
         except Exception:
             self.db.rollback()
             raise
@@ -161,8 +184,20 @@ class TicketService:
         self._require_support(actor)
         try:
             ticket = self._get_ticket(ticket_id)
+            old_priority = ticket.priority
+            if old_priority == priority.value:
+                self.db.commit()
+                return ticket
+
             ticket.priority = priority.value
-            return self._save_and_commit(ticket)
+            return self._save_and_commit(
+                ticket,
+                actor=actor,
+                event_type=TicketEventType.PRIORITY_CHANGED,
+                field_name="priority",
+                old_value=old_priority,
+                new_value=priority.value,
+            )
         except Exception:
             self.db.rollback()
             raise
@@ -183,12 +218,28 @@ class TicketService:
                 )
 
             now = _utc_now()
+            old_status = ticket.status
             ticket.status = requested_status.value
             if requested_status == TicketStatus.RESOLVED:
                 ticket.resolved_at = now
             elif requested_status == TicketStatus.CLOSED:
                 ticket.closed_at = now
-            return self._save_and_commit(ticket, updated_at=now)
+            lifecycle_event_type = None
+            if requested_status == TicketStatus.RESOLVED:
+                lifecycle_event_type = TicketEventType.TICKET_RESOLVED
+            elif requested_status == TicketStatus.CLOSED:
+                lifecycle_event_type = TicketEventType.TICKET_CLOSED
+
+            return self._save_and_commit(
+                ticket,
+                actor=actor,
+                event_type=TicketEventType.STATUS_CHANGED,
+                field_name="status",
+                old_value=old_status,
+                new_value=requested_status.value,
+                lifecycle_event_type=lifecycle_event_type,
+                updated_at=now,
+            )
         except Exception:
             self.db.rollback()
             raise
@@ -203,8 +254,20 @@ class TicketService:
         try:
             ticket = self._get_ticket(ticket_id)
             self._get_active_category(category_id)
+            old_category_id = ticket.category_id
+            if old_category_id == category_id:
+                self.db.commit()
+                return ticket
+
             ticket.category_id = category_id
-            return self._save_and_commit(ticket)
+            return self._save_and_commit(
+                ticket,
+                actor=actor,
+                event_type=TicketEventType.CATEGORY_CHANGED,
+                field_name="category_id",
+                old_value=str(old_category_id),
+                new_value=str(category_id),
+            )
         except Exception:
             self.db.rollback()
             raise
@@ -226,12 +289,39 @@ class TicketService:
         self,
         ticket: Ticket,
         *,
+        actor: User,
+        event_type: TicketEventType,
+        field_name: str,
+        old_value: str | None,
+        new_value: str | None,
+        lifecycle_event_type: TicketEventType | None = None,
         updated_at: datetime | None = None,
     ) -> Ticket:
-        ticket.updated_at = updated_at or _utc_now()
+        event_created_at = updated_at or _utc_now()
+        ticket.updated_at = event_created_at
         ticket = self.ticket_repository.save(ticket)
+        self.ticket_event_recorder.record(
+            ticket_id=ticket.id,
+            actor_id=actor.id,
+            event_type=event_type,
+            field_name=field_name,
+            old_value=old_value,
+            new_value=new_value,
+            created_at=event_created_at,
+        )
+        if lifecycle_event_type is not None:
+            self.ticket_event_recorder.record(
+                ticket_id=ticket.id,
+                actor_id=actor.id,
+                event_type=lifecycle_event_type,
+                created_at=event_created_at,
+            )
         self.db.commit()
         return ticket
+
+    @staticmethod
+    def _serialize_id(value: int | None) -> str | None:
+        return str(value) if value is not None else None
 
     @staticmethod
     def _require_support(actor: User) -> None:

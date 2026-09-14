@@ -3,7 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, status
 
 from app.dependencies.auth import get_current_user
-from app.dependencies.services import get_ticket_service
+from app.dependencies.services import (
+    get_ticket_comment_service,
+    get_ticket_event_service,
+    get_ticket_service,
+)
 from app.models.user import User
 from app.schemas.error import ErrorResponse, ValidationErrorResponse
 from app.schemas.ticket import (
@@ -16,7 +20,16 @@ from app.schemas.ticket import (
     TicketResponse,
     TicketStatusUpdate,
 )
+from app.schemas.ticket_comment import (
+    TicketCommentCreate,
+    TicketCommentListFilters,
+    TicketCommentListResponse,
+    TicketCommentResponse,
+)
+from app.schemas.ticket_event import TicketEventListFilters, TicketEventListResponse
 from app.services.ticket import TicketService
+from app.services.ticket_comment import TicketCommentService
+from app.services.ticket_event import TicketEventService
 
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
@@ -93,6 +106,88 @@ def get_ticket(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> TicketResponse:
     return ticket_service.get_ticket(ticket_id, current_user)
+
+
+@router.post(
+    "/{ticket_id}/comments",
+    response_model=TicketCommentResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        **AUTH_RESPONSES,
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Visible ticket not found.",
+            "model": ErrorResponse,
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Request validation failed.",
+            "model": ValidationErrorResponse,
+        },
+    },
+)
+def create_ticket_comment(
+    ticket_id: Annotated[int, Path(gt=0)],
+    data: TicketCommentCreate,
+    ticket_comment_service: Annotated[
+        TicketCommentService,
+        Depends(get_ticket_comment_service),
+    ],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> TicketCommentResponse:
+    return ticket_comment_service.create_comment(ticket_id, data, current_user)
+
+
+@router.get(
+    "/{ticket_id}/comments",
+    response_model=TicketCommentListResponse,
+    responses={
+        **AUTH_RESPONSES,
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Visible ticket not found.",
+            "model": ErrorResponse,
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Request validation failed.",
+            "model": ValidationErrorResponse,
+        },
+    },
+)
+def list_ticket_comments(
+    ticket_id: Annotated[int, Path(gt=0)],
+    filters: Annotated[TicketCommentListFilters, Depends()],
+    ticket_comment_service: Annotated[
+        TicketCommentService,
+        Depends(get_ticket_comment_service),
+    ],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> TicketCommentListResponse:
+    return ticket_comment_service.list_comments(ticket_id, filters, current_user)
+
+
+@router.get(
+    "/{ticket_id}/events",
+    response_model=TicketEventListResponse,
+    responses={
+        **AUTH_RESPONSES,
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Visible ticket not found.",
+            "model": ErrorResponse,
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Request validation failed.",
+            "model": ValidationErrorResponse,
+        },
+    },
+)
+def list_ticket_events(
+    ticket_id: Annotated[int, Path(gt=0)],
+    filters: Annotated[TicketEventListFilters, Depends()],
+    ticket_event_service: Annotated[
+        TicketEventService,
+        Depends(get_ticket_event_service),
+    ],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> TicketEventListResponse:
+    return ticket_event_service.list_events(ticket_id, filters, current_user)
 
 
 @router.patch(
