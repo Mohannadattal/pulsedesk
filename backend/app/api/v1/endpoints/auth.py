@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, status
 
 from app.dependencies.services import get_authentication_service
 from app.schemas.auth import AccessTokenResponse, LoginRequest
+from app.schemas.error import ErrorResponse
 from app.services.auth import AuthenticationService
 
 
@@ -16,6 +17,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "The supplied credentials could not be authenticated.",
+            "model": ErrorResponse,
         },
     },
 )

@@ -43,8 +43,8 @@ def run() -> int:
             first_name=arguments.first_name,
             last_name=arguments.last_name,
         )
-    except (ValidationError, ValueError) as error:
-        print(f"Invalid bootstrap data: {error}", file=sys.stderr)
+    except (ValidationError, ValueError):
+        print("Invalid bootstrap data.", file=sys.stderr)
         return 1
 
     with SessionLocal() as db:

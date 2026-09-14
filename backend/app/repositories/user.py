@@ -1,30 +1,15 @@
-import re
-
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.user import User, UserRole
-from app.repositories.exceptions import DuplicateUserEmailError
+from app.repositories.exceptions import (
+    DuplicateUserEmailError,
+    is_mysql_duplicate_constraint,
+)
 
 
-MYSQL_DUPLICATE_ENTRY_ERROR_CODE = 1062
 USER_EMAIL_UNIQUE_CONSTRAINT = "uq_users_email"
-
-
-def _is_duplicate_user_email_error(error: IntegrityError) -> bool:
-    original_error_arguments = getattr(error.orig, "args", ())
-    if (
-        len(original_error_arguments) < 2
-        or original_error_arguments[0] != MYSQL_DUPLICATE_ENTRY_ERROR_CODE
-    ):
-        return False
-
-    message = str(original_error_arguments[1])
-    constraint_pattern = (
-        rf"for key ['`](?:[^'`]+\.)?{re.escape(USER_EMAIL_UNIQUE_CONSTRAINT)}['`]"
-    )
-    return re.search(constraint_pattern, message) is not None
 
 
 class UserRepository:
@@ -48,7 +33,7 @@ class UserRepository:
         try:
             self.db.flush()
         except IntegrityError as error:
-            if _is_duplicate_user_email_error(error):
+            if is_mysql_duplicate_constraint(error, USER_EMAIL_UNIQUE_CONSTRAINT):
                 raise DuplicateUserEmailError from error
             raise
 

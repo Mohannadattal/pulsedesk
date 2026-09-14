@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, status
 from app.dependencies.auth import require_roles, require_self_or_roles
 from app.dependencies.services import get_user_service
 from app.models.user import User, UserRole
+from app.schemas.error import ErrorResponse
 from app.schemas.user import UserProvisionRequest, UserResponse
 from app.services.user import UserService
 
@@ -19,12 +20,15 @@ router = APIRouter(prefix="/users", tags=["Users"])
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Authentication is required.",
+            "model": ErrorResponse,
         },
         status.HTTP_403_FORBIDDEN: {
             "description": "Administrator access is required.",
+            "model": ErrorResponse,
         },
         status.HTTP_409_CONFLICT: {
             "description": "A user with this email already exists.",
+            "model": ErrorResponse,
         },
     },
 )
@@ -42,12 +46,15 @@ def create_user(
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Authentication is required.",
+            "model": ErrorResponse,
         },
         status.HTTP_403_FORBIDDEN: {
             "description": "Access is limited to the user or an administrator.",
+            "model": ErrorResponse,
         },
         status.HTTP_404_NOT_FOUND: {
             "description": "User not found.",
+            "model": ErrorResponse,
         },
     },
 )

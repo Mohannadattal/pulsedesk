@@ -1,0 +1,42 @@
+from enum import StrEnum
+from typing import Literal
+
+from pydantic import BaseModel
+
+
+class ErrorCode(StrEnum):
+    AUTHENTICATION_FAILED = "AUTHENTICATION_FAILED"
+    FORBIDDEN = "FORBIDDEN"
+    USER_NOT_FOUND = "USER_NOT_FOUND"
+    USER_ALREADY_EXISTS = "USER_ALREADY_EXISTS"
+    CATEGORY_NOT_FOUND = "CATEGORY_NOT_FOUND"
+    CATEGORY_ALREADY_EXISTS = "CATEGORY_ALREADY_EXISTS"
+    CATEGORY_INACTIVE = "CATEGORY_INACTIVE"
+    TICKET_NOT_FOUND = "TICKET_NOT_FOUND"
+    INVALID_TICKET_STATUS_TRANSITION = "INVALID_TICKET_STATUS_TRANSITION"
+    INVALID_TICKET_ASSIGNEE = "INVALID_TICKET_ASSIGNEE"
+    INVALID_TICKET_FILTER = "INVALID_TICKET_FILTER"
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE"
+    INTERNAL_ERROR = "INTERNAL_ERROR"
+    BAD_REQUEST = "BAD_REQUEST"
+    NOT_FOUND = "NOT_FOUND"
+    METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED"
+    HTTP_ERROR = "HTTP_ERROR"
+
+
+class ErrorResponse(BaseModel):
+    code: ErrorCode
+    detail: str
+
+
+class ValidationErrorItem(BaseModel):
+    location: list[str | int]
+    message: str
+    type: str
+
+
+class ValidationErrorResponse(BaseModel):
+    code: Literal[ErrorCode.VALIDATION_ERROR] = ErrorCode.VALIDATION_ERROR
+    detail: str
+    errors: list[ValidationErrorItem]
