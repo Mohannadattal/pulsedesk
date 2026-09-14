@@ -4,3 +4,5 @@ sqlalchemy
 pymysql
 pydantic-settings
 alembic
+email-validator
+pwdlib[argon2]

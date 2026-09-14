@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, CheckConstraint, String
+from sqlalchemy import Boolean, CheckConstraint, String, func
 from sqlalchemy.dialects.mysql import BIGINT, DATETIME
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,11 +18,11 @@ class User(Base):
     __tablename__ = "users"
 
     __table_args__ = (
- CheckConstraint(
-    "role IN ('EMPLOYEE', 'AGENT', 'ADMIN')",
-    name="role",
-),
-    )
+    CheckConstraint(
+        "role IN ('EMPLOYEE', 'AGENT', 'ADMIN')",
+        name="role",
+    ),
+)
 
     id: Mapped[int] = mapped_column(
         BIGINT(unsigned=True),
@@ -64,15 +64,17 @@ class User(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DATETIME(fsp=6),
-        nullable=False,
-    )
+    DATETIME(fsp=6),
+    nullable=False,
+    default=func.now(),
+)
 
     updated_at: Mapped[datetime] = mapped_column(
-        DATETIME(fsp=6),
-        nullable=False,
-    )
-
+    DATETIME(fsp=6),
+    nullable=False,
+    default=func.now(),
+    onupdate=func.now(),
+)
     created_tickets: Mapped[list["Ticket"]] = relationship(
         back_populates="creator",
         foreign_keys="Ticket.created_by_id",
