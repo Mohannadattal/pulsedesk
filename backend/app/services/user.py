@@ -16,6 +16,7 @@ from app.schemas.user import (
     UserDirectoryListResponse,
     UserProvisionRequest,
 )
+from app.utils.time import utc_now_naive
 
 
 class UserService:
@@ -78,12 +79,15 @@ class UserService:
             if existing_user is not None:
                 raise UserAlreadyExistsError(data.email)
 
+            now = utc_now_naive()
             user = User(
                 email=data.email,
                 password_hash=self.password_hasher.hash(data.password),
                 first_name=data.first_name,
                 last_name=data.last_name,
                 role=data.role,
+                created_at=now,
+                updated_at=now,
             )
 
             created_user = self.user_repository.create(user)

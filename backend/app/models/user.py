@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, CheckConstraint, String, func
+from sqlalchemy import Boolean, CheckConstraint, String
 from sqlalchemy.dialects.mysql import BIGINT, DATETIME
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -66,14 +66,11 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(fsp=6),
         nullable=False,
-        default=func.now(),
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DATETIME(fsp=6),
         nullable=False,
-        default=func.now(),
-        onupdate=func.now(),
     )
 
     created_tickets: Mapped[list["Ticket"]] = relationship(
