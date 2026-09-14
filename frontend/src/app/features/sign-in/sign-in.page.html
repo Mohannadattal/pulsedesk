@@ -1,0 +1,74 @@
+<main class="sign-in">
+  <section class="sign-in__intro" aria-labelledby="welcome-title">
+    <a class="brand" href="/sign-in" aria-label="PulseDesk sign in">
+      <span class="brand__mark" aria-hidden="true">P</span>
+      <span>PulseDesk</span>
+    </a>
+    <div>
+      <p class="eyebrow">Service operations</p>
+      <h1 id="welcome-title">Keep support work moving.</h1>
+      <p class="intro-copy">
+        A focused workspace for triaging requests, coordinating ownership, and resolving the work
+        that matters.
+      </p>
+    </div>
+    <p class="sign-in__footnote">Secure access for PulseDesk team members</p>
+  </section>
+
+  <section class="sign-in__form-region" aria-labelledby="sign-in-title">
+    <mat-card appearance="outlined" class="sign-in-card">
+      <mat-card-header>
+        <mat-card-title id="sign-in-title">Sign in</mat-card-title>
+        <mat-card-subtitle>Use your work account to continue.</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              formControlName="email"
+              type="email"
+              autocomplete="username"
+              inputmode="email"
+              aria-describedby="email-hint"
+            />
+            @if (form.controls.email.hasError('required')) {
+              <mat-error>Email is required.</mat-error>
+            } @else if (form.controls.email.hasError('email')) {
+              <mat-error>Enter a valid email address.</mat-error>
+            }
+          </mat-form-field>
+          <span id="email-hint" class="visually-hidden">Enter your PulseDesk work email.</span>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Password</mat-label>
+            <input
+              matInput
+              formControlName="password"
+              type="password"
+              autocomplete="current-password"
+            />
+            @if (form.controls.password.hasError('required')) {
+              <mat-error>Password is required.</mat-error>
+            }
+          </mat-form-field>
+
+          @if (serverError()) {
+            <div class="form-error" role="alert">{{ serverError() }}</div>
+          }
+
+          <button mat-flat-button type="submit" [disabled]="submitting()">
+            @if (submitting()) {
+              <mat-spinner diameter="18" aria-label="Signing in" />
+              <span>Signing in…</span>
+            } @else {
+              <span>Sign in</span>
+            }
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </section>
+</main>

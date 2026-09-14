@@ -1,0 +1,4 @@
+openapi/openapi.json
+dist/
+coverage/
+node_modules/

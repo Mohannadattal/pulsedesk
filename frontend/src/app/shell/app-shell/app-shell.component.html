@@ -1,0 +1,81 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    #drawer
+    class="shell__sidebar"
+    [mode]="compact() ? 'over' : 'side'"
+    [opened]="!compact()"
+    [fixedInViewport]="compact()"
+    aria-label="Primary navigation"
+  >
+    <div class="sidebar-layout">
+      <a class="brand" routerLink="/tickets" (click)="compact() && drawer.close()">
+        <span class="brand__mark" aria-hidden="true">P</span>
+        <span>PulseDesk</span>
+      </a>
+
+      <nav class="primary-nav" aria-label="Main">
+        <p class="primary-nav__label">Workspace</p>
+        @for (item of navigationItems(); track item.path) {
+          <a
+            class="primary-nav__item"
+            [routerLink]="item.path"
+            routerLinkActive="primary-nav__item--active"
+            [routerLinkActiveOptions]="{ exact: false }"
+            (click)="compact() && drawer.close()"
+          >
+            <span class="primary-nav__symbol" aria-hidden="true"></span>
+            {{ item.label }}
+          </a>
+        }
+      </nav>
+
+      <div class="sidebar__footer">
+        <span>Operational workbench</span>
+        <span class="sidebar__environment">Development</span>
+      </div>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell__content">
+    <mat-toolbar class="topbar">
+      @if (compact()) {
+        <button
+          mat-icon-button
+          type="button"
+          aria-label="Open navigation"
+          (click)="drawer.toggle()"
+        >
+          <span class="menu-lines" aria-hidden="true"></span>
+        </button>
+        <a class="topbar__brand" routerLink="/tickets">PulseDesk</a>
+      } @else {
+        <span class="topbar__context">Service operations</span>
+      }
+
+      <span class="topbar__spacer"></span>
+
+      <button class="user-menu" mat-button type="button" [matMenuTriggerFor]="userMenu">
+        <span class="user-menu__avatar" aria-hidden="true">{{ initials() }}</span>
+        <span class="user-menu__name">
+          {{ session.currentUser()?.first_name }} {{ session.currentUser()?.last_name }}
+        </span>
+        <span class="user-menu__caret" aria-hidden="true">⌄</span>
+      </button>
+      <mat-menu #userMenu="matMenu" xPosition="before">
+        <div class="session-summary">
+          <strong
+            >{{ session.currentUser()?.first_name }} {{ session.currentUser()?.last_name }}</strong
+          >
+          <span>{{ session.currentUser()?.email }}</span>
+          <span class="session-summary__role">{{ session.currentUser()?.role }}</span>
+        </div>
+        <mat-divider />
+        <button mat-menu-item type="button" (click)="logout()">Sign out</button>
+      </mat-menu>
+    </mat-toolbar>
+
+    <main class="page" id="main-content">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

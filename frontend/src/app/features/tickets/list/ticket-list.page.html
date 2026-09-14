@@ -1,0 +1,214 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Ticket operations</p>
+    <h1>{{ session.currentUser()?.role === 'EMPLOYEE' ? 'My tickets' : 'Tickets' }}</h1>
+    <p class="page-header__description">
+      {{
+        session.currentUser()?.role === 'EMPLOYEE'
+          ? 'Track the requests you have raised.'
+          : 'Review and coordinate incoming support work.'
+      }}
+    </p>
+  </div>
+</header>
+
+<section class="filters" aria-label="Ticket filters">
+  <form [formGroup]="filterForm">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="status" (selectionChange)="applyFilters()">
+        <mat-option value="">All statuses</mat-option>
+        @for (status of statuses; track status) {
+          <mat-option [value]="status">{{ enumLabel(status) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Priority</mat-label>
+      <mat-select formControlName="priority" (selectionChange)="applyFilters()">
+        <mat-option value="">All priorities</mat-option>
+        @for (priority of priorities; track priority) {
+          <mat-option [value]="priority">{{ enumLabel(priority) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Assignment</mat-label>
+      <mat-select formControlName="assignment" (selectionChange)="applyFilters()">
+        <mat-option value="">All tickets</mat-option>
+        <mat-option value="assigned">Assigned</mat-option>
+        <mat-option value="unassigned">Unassigned</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    @if (
+      filterForm.controls.status.value ||
+      filterForm.controls.priority.value ||
+      filterForm.controls.assignment.value
+    ) {
+      <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+    }
+  </form>
+</section>
+
+@let current = state();
+@switch (current.kind) {
+  @case ('loading') {
+    <section class="initial-loading" aria-live="polite" aria-label="Loading tickets">
+      <div class="loading-line"></div>
+      <div class="loading-line"></div>
+      <div class="loading-line"></div>
+      <span class="visually-hidden">Loading tickets…</span>
+    </section>
+  }
+  @case ('error') {
+    <app-page-message
+      [kind]="current.error.kind === 'forbidden' ? 'forbidden' : 'error'"
+      [title]="errorTitle(current.error)"
+      [detail]="errorDetail(current.error)"
+      actionLabel="Try again"
+      (action)="retry()"
+    />
+  }
+  @case ('loaded') {
+    <ng-container *ngTemplateOutlet="ticketResults; context: { $implicit: current }" />
+  }
+  @case ('refreshing') {
+    <ng-container *ngTemplateOutlet="ticketResults; context: { $implicit: current }" />
+  }
+}
+
+<ng-template #ticketResults let-current>
+  @if (current.page.items.length === 0) {
+    <app-page-message
+      [title]="hasFilters(current.filters) ? 'No tickets match these filters' : 'No tickets yet'"
+      [detail]="
+        hasFilters(current.filters)
+          ? 'Adjust or clear the filters to see other tickets.'
+          : 'Tickets will appear here when they are created.'
+      "
+      [actionLabel]="hasFilters(current.filters) ? 'Clear filters' : undefined"
+      (action)="clearFilters()"
+    />
+  } @else {
+    <section class="results" [attr.aria-busy]="current.kind === 'refreshing'">
+      @if (current.kind === 'refreshing') {
+        <mat-progress-bar mode="indeterminate" aria-label="Refreshing tickets" />
+      }
+      <div class="results__summary" aria-live="polite">
+        <span>{{ current.page.total }} {{ current.page.total === 1 ? 'ticket' : 'tickets' }}</span>
+        @if (current.kind === 'refreshing') {
+          <span>Updating…</span>
+        }
+      </div>
+
+      <div class="ticket-table-wrap">
+        <table class="ticket-table">
+          <caption class="visually-hidden">
+            Ticket list ordered by newest created first
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Ticket</th>
+              <th scope="col">Status</th>
+              <th scope="col">Priority</th>
+              <th scope="col">Category</th>
+              <th class="optional-column" scope="col">Created by</th>
+              <th scope="col">Assigned to</th>
+              <th scope="col">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ticket of current.page.items; track ticket.id) {
+              <tr>
+                <td class="ticket-cell">
+                  <a class="ticket-number" [routerLink]="[ticket.id]">{{ ticket.ticketNumber }}</a>
+                  <a class="ticket-title" [routerLink]="[ticket.id]">{{ ticket.title }}</a>
+                </td>
+                <td>
+                  <span
+                    class="badge"
+                    [class]="'badge badge--status-' + ticket.status.toLowerCase()"
+                  >
+                    {{ enumLabel(ticket.status) }}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    class="priority"
+                    [class]="'priority priority--' + ticket.priority.toLowerCase()"
+                  >
+                    <span class="priority__mark" aria-hidden="true"></span>
+                    {{ enumLabel(ticket.priority) }}
+                  </span>
+                </td>
+                <td>{{ ticket.category.name }}</td>
+                <td class="optional-column">{{ ticket.creator.name }}</td>
+                <td>{{ ticket.assignee?.name ?? 'Unassigned' }}</td>
+                <td>
+                  <time
+                    [attr.datetime]="ticket.createdAt.toISOString()"
+                    [attr.title]="ticket.createdAt | localDateTime: 'full'"
+                  >
+                    {{ ticket.createdAt | localDateTime }}
+                  </time>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ticket-cards" aria-label="Tickets">
+        @for (ticket of current.page.items; track ticket.id) {
+          <article class="ticket-card">
+            <div class="ticket-card__topline">
+              <a class="ticket-number" [routerLink]="[ticket.id]">{{ ticket.ticketNumber }}</a>
+              <span class="badge" [class]="'badge badge--status-' + ticket.status.toLowerCase()">
+                {{ enumLabel(ticket.status) }}
+              </span>
+            </div>
+            <h2>
+              <a [routerLink]="[ticket.id]">{{ ticket.title }}</a>
+            </h2>
+            <dl>
+              <div>
+                <dt>Priority</dt>
+                <dd>{{ enumLabel(ticket.priority) }}</dd>
+              </div>
+              <div>
+                <dt>Category</dt>
+                <dd>{{ ticket.category.name }}</dd>
+              </div>
+              <div>
+                <dt>Assigned</dt>
+                <dd>{{ ticket.assignee?.name ?? 'Unassigned' }}</dd>
+              </div>
+              <div>
+                <dt>Created</dt>
+                <dd>
+                  <time [attr.datetime]="ticket.createdAt.toISOString()">
+                    {{ ticket.createdAt | localDateTime }}
+                  </time>
+                </dd>
+              </div>
+            </dl>
+          </article>
+        }
+      </div>
+
+      <mat-paginator
+        [length]="current.page.total"
+        [pageIndex]="current.page.page - 1"
+        [pageSize]="current.page.pageSize"
+        [pageSizeOptions]="pageSizes"
+        [disabled]="current.kind === 'refreshing'"
+        showFirstLastButtons
+        aria-label="Ticket pages"
+        (page)="changePage($event)"
+      />
+    </section>
+  }
+</ng-template>

@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+.page-message {
+  display: grid;
+  justify-items: center;
+  gap: var(--pd-space-2);
+  padding: var(--pd-space-7) var(--pd-space-4);
+  border: 1px dashed var(--pd-color-border-strong);
+  border-radius: var(--pd-radius-surface);
+  background: var(--pd-color-surface);
+  text-align: center;
+}
+
+.page-message__mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--pd-color-surface-muted);
+  color: var(--pd-color-text-muted);
+  font-weight: 750;
+}
+
+.page-message--error .page-message__mark {
+  background: var(--pd-color-danger-soft);
+  color: var(--pd-color-danger);
+}
+
+h2,
+p {
+  margin: 0;
+}
+
+h2 {
+  font-size: 1rem;
+}
+
+p {
+  max-width: 35rem;
+  color: var(--pd-color-text-muted);
+}
+
+button {
+  margin-top: var(--pd-space-2);
+}

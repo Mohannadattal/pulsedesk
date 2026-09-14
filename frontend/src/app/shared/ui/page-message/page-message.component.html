@@ -1,0 +1,14 @@
+<section
+  class="page-message"
+  [class.page-message--error]="kind() !== 'empty'"
+  [attr.role]="kind() === 'empty' ? 'status' : 'alert'"
+>
+  <div class="page-message__mark" aria-hidden="true">{{ kind() === 'empty' ? '—' : '!' }}</div>
+  <h2>{{ title() }}</h2>
+  @if (detail()) {
+    <p>{{ detail() }}</p>
+  }
+  @if (actionLabel()) {
+    <button mat-stroked-button type="button" (click)="action.emit()">{{ actionLabel() }}</button>
+  }
+</section>

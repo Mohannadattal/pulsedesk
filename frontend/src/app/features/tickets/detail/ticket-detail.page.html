@@ -1,0 +1,118 @@
+<a class="back-link" routerLink="/tickets">← Back to tickets</a>
+
+@let current = state();
+@switch (current.kind) {
+  @case ('loading') {
+    <section class="detail-loading" aria-label="Loading ticket" aria-live="polite">
+      <div></div>
+      <div></div>
+      <div></div>
+      <span class="visually-hidden">Loading ticket…</span>
+    </section>
+  }
+  @case ('error') {
+    <app-page-message
+      [kind]="
+        current.error.kind === 'not-found'
+          ? 'not-found'
+          : current.error.kind === 'forbidden'
+            ? 'forbidden'
+            : 'error'
+      "
+      [title]="errorTitle(current.error)"
+      [detail]="errorDetail(current.error)"
+      [actionLabel]="canRetry(current.error) ? 'Try again' : undefined"
+      (action)="retry()"
+    />
+  }
+  @case ('loaded') {
+    <article class="ticket-detail">
+      <header class="ticket-header">
+        <div>
+          <p class="ticket-number">{{ current.ticket.ticketNumber }}</p>
+          <h1>{{ current.ticket.title }}</h1>
+        </div>
+        <div class="ticket-header__badges" aria-label="Ticket status and priority">
+          <span
+            class="badge"
+            [class]="'badge badge--status-' + current.ticket.status.toLowerCase()"
+          >
+            Status: {{ enumLabel(current.ticket.status) }}
+          </span>
+          <span class="badge">Priority: {{ enumLabel(current.ticket.priority) }}</span>
+        </div>
+      </header>
+
+      <div class="detail-grid">
+        <section class="detail-section description" aria-labelledby="description-heading">
+          <h2 id="description-heading">Description</h2>
+          <p>{{ current.ticket.description }}</p>
+        </section>
+
+        <aside class="detail-section metadata" aria-labelledby="details-heading">
+          <h2 id="details-heading">Details</h2>
+          <dl>
+            <div>
+              <dt>Category</dt>
+              <dd>{{ current.ticket.category.name }}</dd>
+            </div>
+            <div>
+              <dt>Created by</dt>
+              <dd>{{ current.ticket.creator.name }}</dd>
+            </div>
+            <div>
+              <dt>Assigned to</dt>
+              <dd>{{ current.ticket.assignee?.name ?? 'Unassigned' }}</dd>
+            </div>
+          </dl>
+        </aside>
+
+        <section class="detail-section timeline" aria-labelledby="timeline-heading">
+          <h2 id="timeline-heading">Timeline</h2>
+          <dl>
+            <div>
+              <dt>Created</dt>
+              <dd>
+                <time
+                  [attr.datetime]="current.ticket.createdAt.toISOString()"
+                  [attr.title]="current.ticket.createdAt | localDateTime: 'full'"
+                  >{{ current.ticket.createdAt | localDateTime }}</time
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>Last updated</dt>
+              <dd>
+                <time
+                  [attr.datetime]="current.ticket.updatedAt.toISOString()"
+                  [attr.title]="current.ticket.updatedAt | localDateTime: 'full'"
+                  >{{ current.ticket.updatedAt | localDateTime }}</time
+                >
+              </dd>
+            </div>
+            @if (current.ticket.resolvedAt; as resolvedAt) {
+              <div>
+                <dt>Resolved</dt>
+                <dd>
+                  <time [attr.datetime]="resolvedAt.toISOString()">{{
+                    resolvedAt | localDateTime
+                  }}</time>
+                </dd>
+              </div>
+            }
+            @if (current.ticket.closedAt; as closedAt) {
+              <div>
+                <dt>Closed</dt>
+                <dd>
+                  <time [attr.datetime]="closedAt.toISOString()">{{
+                    closedAt | localDateTime
+                  }}</time>
+                </dd>
+              </div>
+            }
+          </dl>
+        </section>
+      </div>
+    </article>
+  }
+}

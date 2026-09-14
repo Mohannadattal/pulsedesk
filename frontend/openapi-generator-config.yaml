@@ -1,0 +1,12 @@
+generatorName: typescript-angular
+inputSpec: openapi/openapi.json
+outputDir: src/app/api/generated
+additionalProperties:
+  apiModulePrefix: PulseDesk
+  enumPropertyNaming: original
+  ngVersion: 22.1.6
+  providedInRoot: true
+  serviceSuffix: Api
+  stringEnums: true
+  supportsES6: true
+  withInterfaces: true

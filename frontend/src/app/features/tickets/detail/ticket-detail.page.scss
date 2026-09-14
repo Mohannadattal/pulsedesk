@@ -1,0 +1,214 @@
+:host {
+  display: block;
+}
+
+.back-link {
+  display: inline-flex;
+  margin-bottom: var(--pd-space-4);
+  color: var(--pd-color-action-strong);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+}
+
+.ticket-detail {
+  overflow: hidden;
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-surface);
+  background: var(--pd-color-surface);
+}
+
+.ticket-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pd-space-5);
+  padding: var(--pd-space-5);
+  border-bottom: 1px solid var(--pd-color-border);
+}
+
+.ticket-number {
+  margin: 0 0 var(--pd-space-2);
+  color: var(--pd-color-action-strong);
+  font-family: var(--pd-font-mono);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.035em;
+}
+
+h1 {
+  max-width: 56rem;
+  margin: 0;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 720;
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+}
+
+.ticket-header__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--pd-space-2);
+}
+
+.badge {
+  display: inline-flex;
+  min-height: 1.6rem;
+  align-items: center;
+  padding: 0 var(--pd-space-2);
+  border: 1px solid var(--pd-color-border-strong);
+  border-radius: 999px;
+  background: var(--pd-color-surface-muted);
+  color: var(--pd-color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge--status-open {
+  border-color: var(--pd-color-info-border);
+  background: var(--pd-color-info-soft);
+  color: var(--pd-color-info);
+}
+
+.badge--status-in_progress {
+  border-color: var(--pd-color-warning-border);
+  background: var(--pd-color-warning-soft);
+  color: var(--pd-color-warning-strong);
+}
+
+.badge--status-resolved {
+  border-color: var(--pd-color-success-border);
+  background: var(--pd-color-success-soft);
+  color: var(--pd-color-success-strong);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 0.8fr);
+}
+
+.detail-section {
+  padding: var(--pd-space-5);
+}
+
+.detail-section h2 {
+  margin: 0 0 var(--pd-space-4);
+  color: var(--pd-color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.description {
+  min-height: 18rem;
+  border-right: 1px solid var(--pd-color-border);
+}
+
+.description p {
+  margin: 0;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.metadata dl,
+.timeline dl {
+  display: grid;
+  gap: var(--pd-space-4);
+  margin: 0;
+}
+
+.metadata dt,
+.timeline dt {
+  margin-bottom: var(--pd-space-1);
+  color: var(--pd-color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.metadata dd,
+.timeline dd {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.timeline {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--pd-color-border);
+}
+
+.timeline dl {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.detail-loading {
+  display: grid;
+  gap: var(--pd-space-3);
+  padding: var(--pd-space-5);
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-surface);
+  background: var(--pd-color-surface);
+}
+
+.detail-loading div {
+  height: 1rem;
+  border-radius: 0.25rem;
+  background: var(--pd-color-surface-muted);
+}
+
+.detail-loading div:first-child {
+  width: 42%;
+  height: 2rem;
+}
+
+.detail-loading div:last-of-type {
+  width: 76%;
+}
+
+@media (max-width: 48rem) {
+  .ticket-header {
+    flex-direction: column;
+    padding: var(--pd-space-4);
+  }
+
+  .ticket-header__badges {
+    justify-content: flex-start;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-section {
+    padding: var(--pd-space-4);
+  }
+
+  .description {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--pd-color-border);
+  }
+
+  .timeline {
+    grid-column: auto;
+  }
+
+  .timeline dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 30rem) {
+  .timeline dl {
+    grid-template-columns: 1fr;
+  }
+}
