@@ -2,13 +2,14 @@ from sqlalchemy.orm import Session
 
 from app.core.security import PasswordHasher
 from app.exceptions.user import (
+    InitialAdminAlreadyExistsError,
     UserAlreadyExistsError,
     UserNotFoundError,
 )
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.repositories.exceptions import DuplicateUserEmailError
 from app.repositories.user import UserRepository
-from app.schemas.user import UserCreate
+from app.schemas.user import InitialAdminCreate, UserProvisionRequest
 
 
 class UserService:
@@ -22,7 +23,27 @@ class UserService:
         self.user_repository = user_repository
         self.password_hasher = password_hasher
 
-    def create_user(self, data: UserCreate) -> User:
+    def create_user(self, data: UserProvisionRequest) -> User:
+        return self._create_and_commit(data)
+
+    def bootstrap_initial_admin(self, data: InitialAdminCreate) -> User:
+        try:
+            admin_exists = self.user_repository.admin_exists()
+        except Exception:
+            self.db.rollback()
+            raise
+
+        if admin_exists:
+            self.db.rollback()
+            raise InitialAdminAlreadyExistsError
+
+        provision_request = UserProvisionRequest(
+            **data.model_dump(),
+            role=UserRole.ADMIN,
+        )
+        return self._create_and_commit(provision_request)
+
+    def _create_and_commit(self, data: UserProvisionRequest) -> User:
         try:
             existing_user = self.user_repository.get_by_email(data.email)
 

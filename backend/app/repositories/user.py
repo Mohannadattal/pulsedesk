@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.repositories.exceptions import DuplicateUserEmailError
 
 
@@ -38,6 +38,10 @@ class UserRepository:
     def get_by_email(self, email: str) -> User | None:
         statement = select(User).where(User.email == email)
         return self.db.scalar(statement)
+
+    def admin_exists(self) -> bool:
+        statement = select(User.id).where(User.role == UserRole.ADMIN).limit(1)
+        return self.db.scalar(statement) is not None
 
     def create(self, user: User) -> User:
         self.db.add(user)
