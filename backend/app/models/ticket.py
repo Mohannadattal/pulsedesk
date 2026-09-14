@@ -27,14 +27,13 @@ class Ticket(Base):
 
     __table_args__ = (
         CheckConstraint(
-    "status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')",
-    name="status",
-),
-
-CheckConstraint(
-    "priority IN ('LOW', 'MEDIUM', 'HIGH', 'URGENT')",
-    name="priority",
-),
+            "status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')",
+            name="status",
+        ),
+        CheckConstraint(
+            "priority IN ('LOW', 'MEDIUM', 'HIGH', 'URGENT')",
+            name="priority",
+        ),
         Index(
             "ix_tickets_category_id",
             "category_id",

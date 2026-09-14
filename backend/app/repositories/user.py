@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -27,6 +27,31 @@ class UserRepository:
     def admin_exists(self) -> bool:
         statement = select(User.id).where(User.role == UserRole.ADMIN).limit(1)
         return self.db.scalar(statement) is not None
+
+    def list(
+        self,
+        *,
+        role: UserRole | None,
+        is_active: bool,
+        page: int,
+        page_size: int,
+    ) -> tuple[list[User], int]:
+        conditions = [User.is_active.is_(is_active)]
+        if role is not None:
+            conditions.append(User.role == role.value)
+
+        count_statement = select(func.count()).select_from(User).where(*conditions)
+        total = self.db.scalar(count_statement) or 0
+
+        statement = (
+            select(User)
+            .where(*conditions)
+            .order_by(User.last_name.asc(), User.first_name.asc(), User.id.asc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        users = list(self.db.scalars(statement).all())
+        return users, total
 
     def create(self, user: User) -> User:
         self.db.add(user)

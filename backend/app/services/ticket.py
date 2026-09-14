@@ -1,6 +1,6 @@
 import base64
 import secrets
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
@@ -22,6 +22,7 @@ from app.repositories.ticket import TicketRepository
 from app.repositories.user import UserRepository
 from app.schemas.ticket import TicketCreate, TicketListFilters, TicketListResponse
 from app.services.ticket_event import TicketEventRecorder
+from app.utils.time import utc_now_naive
 
 
 TICKET_NUMBER_ATTEMPTS = 3
@@ -30,10 +31,6 @@ ALLOWED_STATUS_TRANSITIONS = {
     TicketStatus.IN_PROGRESS.value: TicketStatus.RESOLVED,
     TicketStatus.RESOLVED.value: TicketStatus.CLOSED,
 }
-
-
-def _utc_now() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def _generate_ticket_number() -> str:
@@ -59,7 +56,7 @@ class TicketService:
     def create_ticket(self, data: TicketCreate, actor: User) -> Ticket:
         last_collision: DuplicateTicketNumberError | None = None
         for _attempt in range(TICKET_NUMBER_ATTEMPTS):
-            now = _utc_now()
+            now = utc_now_naive()
             ticket = Ticket(
                 ticket_number=_generate_ticket_number(),
                 title=data.title,
@@ -217,7 +214,7 @@ class TicketService:
                     requested_status,
                 )
 
-            now = _utc_now()
+            now = utc_now_naive()
             old_status = ticket.status
             ticket.status = requested_status.value
             if requested_status == TicketStatus.RESOLVED:
@@ -297,7 +294,7 @@ class TicketService:
         lifecycle_event_type: TicketEventType | None = None,
         updated_at: datetime | None = None,
     ) -> Ticket:
-        event_created_at = updated_at or _utc_now()
+        event_created_at = updated_at or utc_now_naive()
         ticket.updated_at = event_created_at
         ticket = self.ticket_repository.save(ticket)
         self.ticket_event_recorder.record(

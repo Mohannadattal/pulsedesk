@@ -50,6 +50,7 @@ AUTH_RESPONSES = {
     "",
     response_model=TicketResponse,
     status_code=status.HTTP_201_CREATED,
+    operation_id="create_ticket",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {
@@ -73,6 +74,7 @@ def create_ticket(
 @router.get(
     "",
     response_model=TicketListResponse,
+    operation_id="list_tickets",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_422_UNPROCESSABLE_CONTENT: {
@@ -92,6 +94,7 @@ def list_tickets(
 @router.get(
     "/{ticket_id}",
     response_model=TicketResponse,
+    operation_id="get_ticket",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {
@@ -112,6 +115,7 @@ def get_ticket(
     "/{ticket_id}/comments",
     response_model=TicketCommentResponse,
     status_code=status.HTTP_201_CREATED,
+    operation_id="create_ticket_comment",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {
@@ -139,6 +143,7 @@ def create_ticket_comment(
 @router.get(
     "/{ticket_id}/comments",
     response_model=TicketCommentListResponse,
+    operation_id="list_ticket_comments",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {
@@ -166,6 +171,7 @@ def list_ticket_comments(
 @router.get(
     "/{ticket_id}/events",
     response_model=TicketEventListResponse,
+    operation_id="list_ticket_events",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {
@@ -193,6 +199,7 @@ def list_ticket_events(
 @router.patch(
     "/{ticket_id}/assignment",
     response_model=TicketResponse,
+    operation_id="update_ticket_assignment",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {
@@ -221,6 +228,7 @@ def update_ticket_assignment(
 @router.patch(
     "/{ticket_id}/priority",
     response_model=TicketResponse,
+    operation_id="update_ticket_priority",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {
@@ -241,6 +249,7 @@ def update_ticket_priority(
 @router.patch(
     "/{ticket_id}/status",
     response_model=TicketResponse,
+    operation_id="update_ticket_status",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {
@@ -265,6 +274,7 @@ def update_ticket_status(
 @router.patch(
     "/{ticket_id}/category",
     response_model=TicketResponse,
+    operation_id="update_ticket_category",
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {

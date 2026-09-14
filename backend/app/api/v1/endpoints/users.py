@@ -1,12 +1,21 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Path, status
 
-from app.dependencies.auth import require_roles, require_self_or_roles
+from app.dependencies.auth import (
+    get_current_user,
+    require_roles,
+    require_self_or_roles,
+)
 from app.dependencies.services import get_user_service
 from app.models.user import User, UserRole
 from app.schemas.error import ErrorResponse
-from app.schemas.user import UserProvisionRequest, UserResponse
+from app.schemas.user import (
+    UserDirectoryFilters,
+    UserDirectoryListResponse,
+    UserProvisionRequest,
+    UserResponse,
+)
 from app.services.user import UserService
 
 
@@ -17,6 +26,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
     "",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
+    operation_id="create_user",
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Authentication is required.",
@@ -41,8 +51,32 @@ def create_user(
 
 
 @router.get(
+    "",
+    response_model=UserDirectoryListResponse,
+    operation_id="list_users",
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Authentication is required.",
+            "model": ErrorResponse,
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "description": "Agent or administrator access is required.",
+            "model": ErrorResponse,
+        },
+    },
+)
+def list_users(
+    filters: Annotated[UserDirectoryFilters, Depends()],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> UserDirectoryListResponse:
+    return user_service.list_users(filters, current_user)
+
+
+@router.get(
     "/{user_id}",
     response_model=UserResponse,
+    operation_id="get_user",
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Authentication is required.",
@@ -59,7 +93,7 @@ def create_user(
     },
 )
 def get_user(
-    user_id: int,
+    user_id: Annotated[int, Path(gt=0)],
     user_service: Annotated[UserService, Depends(get_user_service)],
     _authorized_user: Annotated[
         User,

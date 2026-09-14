@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.core.security import PasswordHasher
+from app.exceptions.auth import AuthorizationError
 from app.exceptions.user import (
     InitialAdminAlreadyExistsError,
     UserAlreadyExistsError,
@@ -9,7 +10,12 @@ from app.exceptions.user import (
 from app.models.user import User, UserRole
 from app.repositories.exceptions import DuplicateUserEmailError
 from app.repositories.user import UserRepository
-from app.schemas.user import InitialAdminCreate, UserProvisionRequest
+from app.schemas.user import (
+    InitialAdminCreate,
+    UserDirectoryFilters,
+    UserDirectoryListResponse,
+    UserProvisionRequest,
+)
 
 
 class UserService:
@@ -25,6 +31,28 @@ class UserService:
 
     def create_user(self, data: UserProvisionRequest) -> User:
         return self._create_and_commit(data)
+
+    def list_users(
+        self,
+        filters: UserDirectoryFilters,
+        actor: User,
+    ) -> UserDirectoryListResponse:
+        if actor.role not in {UserRole.AGENT.value, UserRole.ADMIN.value}:
+            raise AuthorizationError
+
+        users, total = self.user_repository.list(
+            role=filters.role,
+            is_active=filters.is_active,
+            page=filters.page,
+            page_size=filters.page_size,
+        )
+        return UserDirectoryListResponse(
+            items=users,
+            page=filters.page,
+            page_size=filters.page_size,
+            total=total,
+            total_pages=(total + filters.page_size - 1) // filters.page_size,
+        )
 
     def bootstrap_initial_admin(self, data: InitialAdminCreate) -> User:
         try:

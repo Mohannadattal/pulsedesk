@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.ticket import TicketPriority, TicketStatus
+from app.schemas.types import UtcDateTime
 
 
 class TicketMutationRequest(BaseModel):
@@ -66,10 +65,10 @@ class TicketResponse(BaseModel):
     category_id: int
     created_by_id: int
     assigned_to_id: int | None
-    created_at: datetime
-    updated_at: datetime
-    resolved_at: datetime | None
-    closed_at: datetime | None
+    created_at: UtcDateTime
+    updated_at: UtcDateTime
+    resolved_at: UtcDateTime | None
+    closed_at: UtcDateTime | None
 
 
 class TicketListResponse(BaseModel):

@@ -17,6 +17,7 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
     "",
     response_model=CategoryResponse,
     status_code=status.HTTP_201_CREATED,
+    operation_id="create_category",
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Authentication is required.",
@@ -43,6 +44,7 @@ def create_category(
 @router.get(
     "",
     response_model=list[CategoryResponse],
+    operation_id="list_categories",
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Authentication is required.",
@@ -68,6 +70,7 @@ def list_categories(
 @router.get(
     "/{category_id}",
     response_model=CategoryResponse,
+    operation_id="get_category",
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Authentication is required.",
@@ -90,6 +93,7 @@ def get_category(
 @router.patch(
     "/{category_id}",
     response_model=CategoryResponse,
+    operation_id="update_category",
     responses={
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Authentication is required.",

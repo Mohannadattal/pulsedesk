@@ -16,9 +16,6 @@ class TicketRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def get_by_id(self, ticket_id: int) -> Ticket | None:
-        return self.db.get(Ticket, ticket_id)
-
     def get_by_id_for_update(self, ticket_id: int) -> Ticket | None:
         statement = select(Ticket).where(Ticket.id == ticket_id).with_for_update()
         return self.db.scalar(statement)

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from app.exceptions.auth import AuthorizationError
@@ -9,10 +9,6 @@ from app.schemas.ticket_event import TicketEventListFilters, TicketEventListResp
 
 if TYPE_CHECKING:
     from app.services.ticket import TicketService
-
-
-def _utc_now() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class TicketEventRecorder:
@@ -27,11 +23,11 @@ class TicketEventRecorder:
         ticket_id: int,
         actor_id: int | None,
         event_type: TicketEventType,
+        created_at: datetime,
         field_name: str | None = None,
         old_value: str | None = None,
         new_value: str | None = None,
         metadata: dict[str, Any] | None = None,
-        created_at: datetime | None = None,
     ) -> TicketEvent:
         event = TicketEvent(
             ticket_id=ticket_id,
@@ -41,7 +37,7 @@ class TicketEventRecorder:
             old_value=old_value,
             new_value=new_value,
             event_metadata=metadata,
-            created_at=created_at or _utc_now(),
+            created_at=created_at,
         )
         return self.ticket_event_repository.create(event)
 

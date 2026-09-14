@@ -1,6 +1,8 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
+from app.core.config import settings
 from app.exceptions.handlers import register_exception_handlers
 from app.schemas.error import ErrorResponse, ValidationErrorResponse
 
@@ -8,6 +10,14 @@ from app.schemas.error import ErrorResponse, ValidationErrorResponse
 app = FastAPI(
     title="PulseDesk API",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 register_exception_handlers(app)
@@ -32,7 +42,7 @@ app.include_router(
 )
 
 
-@app.get("/health", tags=["Health"])
+@app.get("/health", tags=["Health"], operation_id="health_check")
 def health_check() -> dict[str, str]:
     return {
         "status": "healthy",

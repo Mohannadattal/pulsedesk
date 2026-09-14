@@ -1,7 +1,8 @@
-from datetime import datetime
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.schemas.types import UtcDateTime
 
 
 class CategoryCreate(BaseModel):
@@ -60,5 +61,5 @@ class CategoryResponse(BaseModel):
     name: str
     description: str | None
     is_active: bool
-    created_at: datetime
-    updated_at: datetime
+    created_at: UtcDateTime
+    updated_at: UtcDateTime

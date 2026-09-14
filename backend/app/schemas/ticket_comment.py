@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.ticket_comment import CommentVisibility
+from app.schemas.types import UtcDateTime
 
 
 class TicketCommentMutationRequest(BaseModel):
@@ -39,8 +38,8 @@ class TicketCommentResponse(BaseModel):
     author_id: int
     content: str
     visibility: CommentVisibility
-    created_at: datetime
-    updated_at: datetime
+    created_at: UtcDateTime
+    updated_at: UtcDateTime
 
 
 class TicketCommentListResponse(BaseModel):

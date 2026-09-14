@@ -18,11 +18,11 @@ class User(Base):
     __tablename__ = "users"
 
     __table_args__ = (
-    CheckConstraint(
-        "role IN ('EMPLOYEE', 'AGENT', 'ADMIN')",
-        name="role",
-    ),
-)
+        CheckConstraint(
+            "role IN ('EMPLOYEE', 'AGENT', 'ADMIN')",
+            name="role",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(
         BIGINT(unsigned=True),
@@ -64,17 +64,18 @@ class User(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-    DATETIME(fsp=6),
-    nullable=False,
-    default=func.now(),
-)
+        DATETIME(fsp=6),
+        nullable=False,
+        default=func.now(),
+    )
 
     updated_at: Mapped[datetime] = mapped_column(
-    DATETIME(fsp=6),
-    nullable=False,
-    default=func.now(),
-    onupdate=func.now(),
-)
+        DATETIME(fsp=6),
+        nullable=False,
+        default=func.now(),
+        onupdate=func.now(),
+    )
+
     created_tickets: Mapped[list["Ticket"]] = relationship(
         back_populates="creator",
         foreign_keys="Ticket.created_by_id",

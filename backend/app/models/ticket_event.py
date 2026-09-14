@@ -70,10 +70,11 @@ class TicketEvent(Base):
     )
 
     event_metadata: Mapped[dict[str, Any] | None] = mapped_column(
-    "metadata",
-    JSON,
-    nullable=True,
-)
+        "metadata",
+        JSON,
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(fsp=6),
         nullable=False,

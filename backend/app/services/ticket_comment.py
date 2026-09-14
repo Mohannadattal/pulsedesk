@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from sqlalchemy.orm import Session
 
 from app.exceptions.auth import AuthorizationError
@@ -14,10 +12,7 @@ from app.schemas.ticket_comment import (
 )
 from app.services.ticket import TicketService
 from app.services.ticket_event import TicketEventRecorder
-
-
-def _utc_now() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
+from app.utils.time import utc_now_naive
 
 
 class TicketCommentService:
@@ -53,7 +48,7 @@ class TicketCommentService:
             }:
                 raise AuthorizationError
 
-            now = _utc_now()
+            now = utc_now_naive()
             comment = TicketComment(
                 ticket_id=ticket_id,
                 author_id=actor.id,

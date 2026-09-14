@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from sqlalchemy.orm import Session
 
 from app.exceptions.auth import AuthorizationError
@@ -12,10 +10,7 @@ from app.models.user import User, UserRole
 from app.repositories.category import CategoryRepository
 from app.repositories.exceptions import DuplicateCategoryNameError
 from app.schemas.category import CategoryCreate, CategoryUpdate
-
-
-def _utc_now() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
+from app.utils.time import utc_now_naive
 
 
 class CategoryService:
@@ -29,7 +24,7 @@ class CategoryService:
             if self.category_repository.get_by_name(data.name) is not None:
                 raise CategoryAlreadyExistsError(data.name)
 
-            now = _utc_now()
+            now = utc_now_naive()
             category = Category(
                 name=data.name,
                 description=data.description,
@@ -77,19 +72,33 @@ class CategoryService:
             if category is None:
                 raise CategoryNotFoundError(category_id)
 
-            if "name" in data.model_fields_set:
+            changed = False
+            if "name" in data.model_fields_set and data.name != category.name:
                 assert data.name is not None
                 existing = self.category_repository.get_by_name(data.name)
                 if existing is not None and existing.id != category.id:
                     raise CategoryAlreadyExistsError(data.name)
                 category.name = data.name
-            if "description" in data.model_fields_set:
+                changed = True
+            if (
+                "description" in data.model_fields_set
+                and data.description != category.description
+            ):
                 category.description = data.description
-            if "is_active" in data.model_fields_set:
+                changed = True
+            if (
+                "is_active" in data.model_fields_set
+                and data.is_active != category.is_active
+            ):
                 assert data.is_active is not None
                 category.is_active = data.is_active
+                changed = True
 
-            category.updated_at = _utc_now()
+            if not changed:
+                self.db.commit()
+                return category
+
+            category.updated_at = utc_now_naive()
             category = self.category_repository.save(category)
             self.db.commit()
             return category

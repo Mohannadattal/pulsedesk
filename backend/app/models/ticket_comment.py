@@ -18,9 +18,9 @@ class TicketComment(Base):
 
     __table_args__ = (
         CheckConstraint(
-    "visibility IN ('PUBLIC', 'INTERNAL')",
-    name="visibility",
-),
+            "visibility IN ('PUBLIC', 'INTERNAL')",
+            name="visibility",
+        ),
         Index(
             "ix_ticket_comments_ticket_id_created_at",
             "ticket_id",

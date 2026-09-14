@@ -1,6 +1,7 @@
 from typing import Literal
+from urllib.parse import urlsplit
 
-from pydantic import Field, PositiveInt, SecretStr
+from pydantic import Field, PositiveInt, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +14,37 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     access_token_expire_minutes: PositiveInt = 30
+    cors_allowed_origins: list[str] = [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+    ]
+
+    @field_validator("cors_allowed_origins")
+    @classmethod
+    def validate_cors_allowed_origins(cls, origins: list[str]) -> list[str]:
+        if not origins:
+            raise ValueError("At least one CORS origin must be configured.")
+
+        normalized_origins: list[str] = []
+        for origin in origins:
+            parsed = urlsplit(origin)
+            if (
+                origin == "*"
+                or parsed.scheme not in {"http", "https"}
+                or not parsed.netloc
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path not in {"", "/"}
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError(f"Invalid CORS origin: {origin!r}.")
+
+            normalized_origin = f"{parsed.scheme}://{parsed.netloc}"
+            if normalized_origin not in normalized_origins:
+                normalized_origins.append(normalized_origin)
+
+        return normalized_origins
 
     model_config = SettingsConfigDict(
         env_file=".env",

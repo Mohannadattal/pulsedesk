@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from app.models.ticket_event import TicketEventType
+from app.schemas.types import UtcDateTime
 
 
 class TicketEventListFilters(BaseModel):
@@ -23,7 +22,7 @@ class TicketEventResponse(BaseModel):
     metadata: dict[str, JsonValue] | None = Field(
         validation_alias="event_metadata",
     )
-    created_at: datetime
+    created_at: UtcDateTime
 
 
 class TicketEventListResponse(BaseModel):
