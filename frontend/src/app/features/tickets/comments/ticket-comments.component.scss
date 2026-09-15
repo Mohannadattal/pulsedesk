@@ -56,6 +56,10 @@
   width: 100%;
 }
 
+.comment-form .visibility-field {
+  width: min(18rem, 100%);
+}
+
 .comment-form textarea {
   resize: vertical;
 }

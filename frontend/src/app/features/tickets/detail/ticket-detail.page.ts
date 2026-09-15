@@ -1,22 +1,29 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, combineLatest, map, of, startWith, Subject, switchMap } from 'rxjs';
 
 import { TicketPriority } from '../../../api/generated/model/ticketPriority';
 import { TicketStatus } from '../../../api/generated/model/ticketStatus';
+import { AuthSessionStore } from '../../../platform/auth/auth-session.store';
 import { AppError, normalizeHttpError } from '../../../platform/http/app-error';
 import { PageMessageComponent } from '../../../shared/ui/page-message/page-message.component';
 import { LocalDateTimePipe } from '../../../shared/util/local-date-time.pipe';
 import { TicketsDataAccess } from '../data-access/tickets-data-access';
 import { TicketCommentsComponent } from '../comments/ticket-comments.component';
 import { Ticket } from '../domain/ticket';
+import { canOperateTicket, TicketOperationsComponent } from './ticket-operations.component';
 
 type TicketDetailState =
   | { readonly kind: 'loading' }
   | { readonly kind: 'loaded'; readonly ticket: Ticket }
   | { readonly kind: 'error'; readonly error: AppError };
+
+interface TicketDetailEvent {
+  readonly state: TicketDetailState;
+  readonly authorityVersion: number;
+}
 
 @Component({
   selector: 'app-ticket-detail-page',
@@ -26,6 +33,7 @@ type TicketDetailState =
     PageMessageComponent,
     RouterLink,
     TicketCommentsComponent,
+    TicketOperationsComponent,
   ],
   templateUrl: './ticket-detail.page.html',
   styleUrl: './ticket-detail.page.scss',
@@ -35,6 +43,10 @@ export class TicketDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly tickets = inject(TicketsDataAccess);
   private readonly retryRequests = new Subject<void>();
+  protected readonly session = inject(AuthSessionStore);
+  protected readonly terminalError = signal<AppError | null>(null);
+  protected readonly state = signal<TicketDetailState>({ kind: 'loading' });
+  private authorityVersion = 0;
 
   private readonly requestState = combineLatest([
     this.route.paramMap.pipe(map((params) => this.parseTicketId(params.get('id')))),
@@ -42,28 +54,60 @@ export class TicketDetailPage {
   ]).pipe(
     map(([ticketId]) => ticketId),
     switchMap((ticketId) => {
+      const authorityVersion = this.authorityVersion;
       if (ticketId === undefined) {
-        return of<TicketDetailState>({
-          kind: 'error',
-          error: new AppError('not-found', 404),
+        return of<TicketDetailEvent>({
+          state: { kind: 'error', error: new AppError('not-found', 404) },
+          authorityVersion,
         });
       }
       return this.tickets.get(ticketId).pipe(
-        map((ticket): TicketDetailState => ({ kind: 'loaded', ticket })),
-        startWith<TicketDetailState>({ kind: 'loading' }),
+        map(
+          (ticket): TicketDetailEvent => ({
+            state: { kind: 'loaded', ticket },
+            authorityVersion,
+          }),
+        ),
+        startWith<TicketDetailEvent>({ state: { kind: 'loading' }, authorityVersion }),
         catchError((error: unknown) =>
-          of<TicketDetailState>({ kind: 'error', error: normalizeHttpError(error) }),
+          of<TicketDetailEvent>({
+            state: { kind: 'error', error: normalizeHttpError(error) },
+            authorityVersion,
+          }),
         ),
       );
     }),
   );
 
-  protected readonly state = toSignal(this.requestState, {
-    initialValue: { kind: 'loading' } as TicketDetailState,
-  });
+  constructor() {
+    this.requestState.pipe(takeUntilDestroyed()).subscribe(({ state, authorityVersion }) => {
+      if (authorityVersion !== this.authorityVersion) {
+        return;
+      }
+      if (state.kind === 'loading' || state.kind === 'loaded') {
+        this.terminalError.set(null);
+      }
+      this.state.set(state);
+    });
+  }
 
   protected retry(): void {
+    this.terminalError.set(null);
     this.retryRequests.next();
+  }
+
+  protected isSupport(): boolean {
+    return canOperateTicket(this.session.currentUser()?.role);
+  }
+
+  protected replaceTicket(ticket: Ticket): void {
+    this.authorityVersion += 1;
+    this.terminalError.set(null);
+    this.state.set({ kind: 'loaded', ticket });
+  }
+
+  protected ticketNotFound(): void {
+    this.terminalError.set(new AppError('not-found', 404, 'TICKET_NOT_FOUND'));
   }
 
   protected enumLabel(value: TicketStatus | TicketPriority): string {

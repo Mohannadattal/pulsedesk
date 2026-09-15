@@ -13,10 +13,21 @@
     }
   </header>
 
-  @if (session.currentUser()?.role === 'EMPLOYEE') {
+  @if (session.currentUser()) {
     <form class="comment-form" [formGroup]="commentForm" (ngSubmit)="submitComment()" novalidate>
+      @if (session.currentUser()?.role !== 'EMPLOYEE') {
+        <mat-form-field class="visibility-field" appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Visibility</mat-label>
+          <mat-select formControlName="visibility" aria-describedby="comment-visibility-hint">
+            <mat-option [value]="commentVisibilities.PUBLIC">Public</mat-option>
+            <mat-option [value]="commentVisibilities.INTERNAL">Internal</mat-option>
+          </mat-select>
+        </mat-form-field>
+      }
       <mat-form-field appearance="outline">
-        <mat-label>Add a public comment</mat-label>
+        <mat-label>{{
+          session.currentUser()?.role === 'EMPLOYEE' ? 'Add a public comment' : 'Add a comment'
+        }}</mat-label>
         <textarea
           matInput
           formControlName="content"
@@ -35,7 +46,15 @@
         }
       </mat-form-field>
       <div class="comment-form__footer">
-        <span id="comment-visibility-hint">Visible to you and the service team.</span>
+        <span id="comment-visibility-hint">
+          @if (session.currentUser()?.role === 'EMPLOYEE') {
+            Visible to you and the service team.
+          } @else if (commentForm.controls.visibility.value === commentVisibilities.INTERNAL) {
+            Internal — support-only.
+          } @else {
+            Public — requester-visible.
+          }
+        </span>
         <button mat-flat-button type="submit" [disabled]="submitting()">
           @if (submitting()) {
             <mat-spinner diameter="18" aria-label="Adding comment" />
@@ -80,7 +99,9 @@
               <div class="comment__meta">
                 <strong>{{ authorLabel(comment) }}</strong>
                 @if (session.currentUser()?.role !== 'EMPLOYEE') {
-                  <span class="visibility">{{ comment.visibility }}</span>
+                  <span class="visibility">{{
+                    comment.visibility === commentVisibilities.PUBLIC ? 'Public' : 'Internal'
+                  }}</span>
                 }
                 <time
                   [attr.datetime]="comment.createdAt.toISOString()"

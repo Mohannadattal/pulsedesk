@@ -1,0 +1,130 @@
+<section
+  class="operations"
+  aria-labelledby="operations-heading"
+  [attr.aria-busy]="busyOperation() !== null"
+>
+  <header>
+    <div>
+      <p class="eyebrow">Agent workflow</p>
+      <h2 id="operations-heading">Ticket operations</h2>
+    </div>
+    @if (busyOperation()) {
+      <span class="progress" role="status">
+        <mat-spinner diameter="18" />
+        {{ progressLabel() }}
+      </span>
+    }
+  </header>
+
+  <div class="operation-grid">
+    <div class="operation">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Assigned Agent</mat-label>
+        <mat-select [formControl]="assignment">
+          <mat-option [value]="null">Unassigned</mat-option>
+          @for (agent of agents(); track agent.id) {
+            <mat-option [value]="agent.id">{{ agent.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="controlsDisabled || agentsUnavailable() || !assignmentIsEligible()"
+        (click)="updateAssignment()"
+      >
+        Apply assignment
+      </button>
+      @if (agentsUnavailable()) {
+        <small>
+          Active Agents are temporarily unavailable.
+          <button mat-button type="button" [disabled]="controlsDisabled" (click)="retryAgents()">
+            Retry directory
+          </button>
+        </small>
+      }
+    </div>
+
+    <div class="operation">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Priority</mat-label>
+        <mat-select [formControl]="priority">
+          @for (item of priorities; track item) {
+            <mat-option [value]="item">{{ enumLabel(item) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="controlsDisabled"
+        (click)="updatePriority()"
+      >
+        Apply priority
+      </button>
+    </div>
+
+    <div class="operation">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Category</mat-label>
+        <mat-select [formControl]="category">
+          @for (item of categories(); track item.id) {
+            <mat-option [value]="item.id">{{ item.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="controlsDisabled || categoriesUnavailable() || !categoryIsActive()"
+        (click)="updateCategory()"
+      >
+        Apply category
+      </button>
+      @if (categoriesUnavailable()) {
+        <small>
+          Active categories are temporarily unavailable.
+          <button
+            mat-button
+            type="button"
+            [disabled]="controlsDisabled"
+            (click)="retryCategories()"
+          >
+            Retry categories
+          </button>
+        </small>
+      }
+    </div>
+
+    <div class="operation operation--status">
+      <span class="operation__label">Workflow</span>
+      @if (nextStatus(); as status) {
+        <button
+          mat-flat-button
+          type="button"
+          [disabled]="controlsDisabled"
+          (click)="advanceStatus()"
+        >
+          Move to {{ enumLabel(status) }}
+        </button>
+        <small>Current status: {{ enumLabel(ticket().status) }}</small>
+      } @else {
+        <span class="closed-state">Closed — workflow complete</span>
+      }
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="operation-error" role="alert">
+      <span>{{ errorMessage() }}</span>
+      @if (retryIntent()) {
+        <button mat-button type="button" (click)="retryMutation()">Retry this change</button>
+      } @else if (recoveryRequired() && busyOperation() === null) {
+        <button mat-button type="button" (click)="retryRecovery()">Reload ticket data</button>
+      }
+    </div>
+  }
+  @if (successMessage()) {
+    <div class="visually-hidden" role="status" aria-live="polite">{{ successMessage() }}</div>
+  }
+</section>

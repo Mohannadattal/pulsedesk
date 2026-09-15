@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
@@ -14,12 +21,12 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import {
   BehaviorSubject,
   catchError,
   combineLatest,
   filter,
-  finalize,
   map,
   Observable,
   of,
@@ -30,6 +37,7 @@ import {
 } from 'rxjs';
 
 import { AuthSessionStore } from '../../../platform/auth/auth-session.store';
+import { CommentVisibility } from '../../../api/generated/model/commentVisibility';
 import { AppError, normalizeHttpError } from '../../../platform/http/app-error';
 import { PageMessageComponent } from '../../../shared/ui/page-message/page-message.component';
 import { LocalDateTimePipe } from '../../../shared/util/local-date-time.pipe';
@@ -65,6 +73,7 @@ const maxUtf8Bytes =
     MatInputModule,
     MatPaginatorModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     PageMessageComponent,
     ReactiveFormsModule,
   ],
@@ -74,6 +83,7 @@ const maxUtf8Bytes =
 })
 export class TicketCommentsComponent {
   private readonly tickets = inject(TicketsDataAccess);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly pageRequests = new BehaviorSubject<CommentsPageRequest>({
     kind: 'page',
     page: 1,
@@ -91,7 +101,11 @@ export class TicketCommentsComponent {
       nonNullable: true,
       validators: [Validators.required, nonWhitespace, maxUtf8Bytes(65_535)],
     }),
+    visibility: new FormControl<CommentVisibility>(CommentVisibility.PUBLIC, {
+      nonNullable: true,
+    }),
   });
+  protected readonly commentVisibilities = CommentVisibility;
 
   private readonly commentRequests = combineLatest([
     toObservable(this.ticket).pipe(filter((ticket): ticket is Ticket => ticket !== null)),
@@ -137,34 +151,34 @@ export class TicketCommentsComponent {
 
   protected submitComment(): void {
     const ticket = this.ticket();
-    if (
-      ticket === null ||
-      this.session.currentUser()?.role !== 'EMPLOYEE' ||
-      this.commentForm.invalid ||
-      this.submitting()
-    ) {
+    if (ticket === null || this.commentForm.invalid || this.submitting()) {
       this.commentForm.markAllAsTouched();
       return;
     }
 
     const content = this.commentForm.controls.content.value.trim();
+    const visibility =
+      this.session.currentUser()?.role === 'EMPLOYEE'
+        ? CommentVisibility.PUBLIC
+        : this.commentForm.controls.visibility.value;
     this.submissionError.set(null);
     this.submissionSuccess.set(null);
     this.contentServerError.set(null);
     this.submitting.set(true);
     this.tickets
-      .addPublicComment(ticket.id, content)
-      .pipe(
-        take(1),
-        finalize(() => this.submitting.set(false)),
-      )
+      .addComment(ticket.id, content, visibility)
+      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.commentForm.reset();
+          this.submitting.set(false);
+          this.commentForm.controls.content.reset();
           this.submissionSuccess.set('Comment added. Showing the newest comments.');
           this.pageRequests.next({ kind: 'newest' });
         },
-        error: (error: unknown) => this.handleSubmissionError(normalizeHttpError(error)),
+        error: (error: unknown) => {
+          this.submitting.set(false);
+          this.handleSubmissionError(normalizeHttpError(error));
+        },
       });
   }
 

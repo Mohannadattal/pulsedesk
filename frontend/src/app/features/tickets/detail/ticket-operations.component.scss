@@ -1,0 +1,129 @@
+:host {
+  display: block;
+  margin-top: var(--pd-space-5);
+}
+
+.operations {
+  overflow: hidden;
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-surface);
+  background: var(--pd-color-surface);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pd-space-3);
+  padding: var(--pd-space-4) var(--pd-space-5);
+  border-bottom: 1px solid var(--pd-color-border);
+}
+
+h2,
+.eyebrow {
+  margin: 0;
+}
+
+h2 {
+  font-size: 1.125rem;
+}
+
+.eyebrow {
+  margin-bottom: var(--pd-space-1);
+  color: var(--pd-color-action-strong);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pd-space-2);
+  color: var(--pd-color-text-muted);
+  font-size: 0.75rem;
+}
+
+.operation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.operation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pd-space-3);
+  padding: var(--pd-space-4) var(--pd-space-5);
+  border-bottom: 1px solid var(--pd-color-border);
+}
+
+.operation:nth-child(odd) {
+  border-right: 1px solid var(--pd-color-border);
+}
+
+.operation mat-form-field {
+  width: 100%;
+}
+
+.operation small {
+  grid-column: 1 / -1;
+  color: var(--pd-color-text-muted);
+}
+
+.operation__label {
+  color: var(--pd-color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.closed-state {
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.operation-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pd-space-3);
+  padding: var(--pd-space-3) var(--pd-space-5);
+  border-top: 1px solid var(--pd-color-danger);
+  background: var(--pd-color-danger-soft);
+  color: var(--pd-color-danger-strong);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 60rem) {
+  .operation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .operation:nth-child(odd) {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 36rem) {
+  header,
+  .operation {
+    padding: var(--pd-space-4);
+  }
+
+  header,
+  .operation,
+  .operation-error {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  header,
+  .operation-error {
+    flex-direction: column;
+  }
+
+  .operation button {
+    width: 100%;
+  }
+}

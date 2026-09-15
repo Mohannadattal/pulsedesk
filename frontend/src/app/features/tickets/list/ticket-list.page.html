@@ -37,23 +37,45 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>Assignment</mat-label>
-      <mat-select formControlName="assignment" (selectionChange)="applyFilters()">
-        <mat-option value="">All tickets</mat-option>
-        <mat-option value="assigned">Assigned</mat-option>
-        <mat-option value="unassigned">Unassigned</mat-option>
-      </mat-select>
-    </mat-form-field>
+    @if (isSupport) {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Category</mat-label>
+        <mat-select formControlName="categoryId" (selectionChange)="applyFilters()">
+          <mat-option value="">All categories</mat-option>
+          @for (category of categories().items; track category.id) {
+            <mat-option [value]="category.id">{{ category.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Assignment</mat-label>
+        <mat-select formControlName="assignment" (selectionChange)="applyFilters()">
+          <mat-option value="">All tickets</mat-option>
+          <mat-option value="unassigned">Unassigned</mat-option>
+          <mat-option value="assigned">Any assigned</mat-option>
+          <mat-option value="mine">Assigned to me</mat-option>
+          @for (agent of agents().items; track agent.id) {
+            <mat-option [value]="'agent:' + agent.id">{{ agent.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
 
     @if (
       filterForm.controls.status.value ||
       filterForm.controls.priority.value ||
+      filterForm.controls.categoryId.value ||
       filterForm.controls.assignment.value
     ) {
       <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
     }
   </form>
+  @if (isSupport && (categories().status === 'failed' || agents().status === 'failed')) {
+    <p class="reference-warning" role="status">
+      Some filter choices are temporarily unavailable. Ticket results are unaffected.
+    </p>
+  }
 </section>
 
 @let current = state();

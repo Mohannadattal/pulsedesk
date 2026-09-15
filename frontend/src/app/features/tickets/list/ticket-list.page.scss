@@ -46,11 +46,18 @@ h1 {
 .filters form {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--pd-space-3);
 }
 
 .filters mat-form-field {
   width: min(13rem, 100%);
+}
+
+.reference-warning {
+  margin: var(--pd-space-3) 0 0;
+  color: var(--pd-color-warning-strong);
+  font-size: 0.75rem;
 }
 
 .results {

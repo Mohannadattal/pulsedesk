@@ -54,7 +54,7 @@ describe('TicketCommentsComponent', () => {
   };
   const tickets = {
     listComments: vi.fn<() => Observable<TicketCommentPage>>(),
-    addPublicComment: vi.fn<() => Observable<TicketComment>>(),
+    addComment: vi.fn<() => Observable<TicketComment>>(),
   };
 
   async function render(
@@ -88,7 +88,7 @@ describe('TicketCommentsComponent', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    tickets.addPublicComment.mockReturnValue(of(COMMENT));
+    tickets.addComment.mockReturnValue(of(COMMENT));
   });
 
   it('does not expose an INTERNAL choice to an employee', async () => {
@@ -105,7 +105,7 @@ describe('TicketCommentsComponent', () => {
     enterComment('   ');
     submitForm();
 
-    expect(tickets.addPublicComment).not.toHaveBeenCalled();
+    expect(tickets.addComment).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Enter a comment.');
   });
 
@@ -119,7 +119,7 @@ describe('TicketCommentsComponent', () => {
     submitForm();
     fixture.detectChanges();
 
-    expect(tickets.addPublicComment).toHaveBeenCalledWith(17, 'Any update?');
+    expect(tickets.addComment).toHaveBeenCalledWith(17, 'Any update?', CommentVisibility.PUBLIC);
     expect(tickets.listComments).toHaveBeenCalledTimes(2);
     expect(fixture.nativeElement.textContent).toContain('Any update?');
     const successStatus = fixture.nativeElement.querySelector(
@@ -162,19 +162,38 @@ describe('TicketCommentsComponent', () => {
 
   it('prevents duplicate comment submissions while one is in flight', async () => {
     const response = new Subject<TicketComment>();
-    tickets.addPublicComment.mockReturnValue(response);
+    tickets.addComment.mockReturnValue(response);
     await render();
 
     enterComment('Any update?');
     submitForm();
     submitForm();
 
-    expect(tickets.addPublicComment).toHaveBeenCalledOnce();
+    expect(tickets.addComment).toHaveBeenCalledOnce();
     response.complete();
   });
 
+  it('does not mutate comment state or refresh after destruction', async () => {
+    const response = new Subject<TicketComment>();
+    tickets.addComment.mockReturnValue(response);
+    await render();
+
+    enterComment('Keep this draft');
+    submitForm();
+    const callsBeforeDestroy = tickets.listComments.mock.calls.length;
+    fixture.destroy();
+
+    response.next(COMMENT);
+    response.complete();
+
+    expect(fixture.componentInstance['commentForm'].controls.content.value).toBe('Keep this draft');
+    expect(fixture.componentInstance['submissionSuccess']()).toBeNull();
+    expect(fixture.componentInstance['submissionError']()).toBeNull();
+    expect(tickets.listComments).toHaveBeenCalledTimes(callsBeforeDestroy);
+  });
+
   it('maps normalized content validation errors to the comment field', async () => {
-    tickets.addPublicComment.mockReturnValue(
+    tickets.addComment.mockReturnValue(
       throwError(
         () =>
           new AppError('validation', 422, 'VALIDATION_ERROR', undefined, [
@@ -193,7 +212,7 @@ describe('TicketCommentsComponent', () => {
     );
   });
 
-  it('does not expose the employee mutation form to support roles', async () => {
+  it('allows an Agent to submit an INTERNAL comment in the mixed timeline', async () => {
     await render(
       UserRole.AGENT,
       of({
@@ -204,8 +223,56 @@ describe('TicketCommentsComponent', () => {
       }),
     );
 
-    expect(fixture.nativeElement.querySelector('form')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('INTERNAL');
+    fixture.componentInstance['commentForm'].controls.visibility.setValue(
+      CommentVisibility.INTERNAL,
+    );
+    enterComment('  Agent-only note  ');
+    submitForm();
+
+    expect(tickets.addComment).toHaveBeenCalledWith(
+      17,
+      'Agent-only note',
+      CommentVisibility.INTERNAL,
+    );
+    expect(fixture.nativeElement.textContent).toContain('Internal');
+  });
+
+  it('allows an Admin to submit a PUBLIC comment explicitly', async () => {
+    await render(UserRole.ADMIN);
+
+    enterComment('Requester update');
+    submitForm();
+
+    expect(tickets.addComment).toHaveBeenCalledWith(
+      17,
+      'Requester update',
+      CommentVisibility.PUBLIC,
+    );
+  });
+
+  it('allows an Agent to submit a PUBLIC comment explicitly', async () => {
+    await render(UserRole.AGENT);
+
+    enterComment('Public Agent update');
+    submitForm();
+
+    expect(tickets.addComment).toHaveBeenCalledWith(
+      17,
+      'Public Agent update',
+      CommentVisibility.PUBLIC,
+    );
+  });
+
+  it('does not change the current comment page when visibility changes', async () => {
+    await render(UserRole.AGENT, of({ ...EMPTY_PAGE, page: 2, total: 30, totalPages: 2 }));
+    const callsBefore = tickets.listComments.mock.calls.length;
+
+    fixture.componentInstance['commentForm'].controls.visibility.setValue(
+      CommentVisibility.INTERNAL,
+    );
+    fixture.detectChanges();
+
+    expect(tickets.listComments).toHaveBeenCalledTimes(callsBefore);
   });
 
   function enterComment(value: string): void {

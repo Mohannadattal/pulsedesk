@@ -1,19 +1,25 @@
 import { inject, Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
 
 import { CategoriesApi } from '../../../api/generated/api/categories.service';
 import { TicketsApi } from '../../../api/generated/api/tickets.service';
+import { UsersApi } from '../../../api/generated/api/users.service';
 import { CommentVisibility } from '../../../api/generated/model/commentVisibility';
 import { TicketCreate } from '../../../api/generated/model/ticketCreate';
+import { TicketPriority } from '../../../api/generated/model/ticketPriority';
+import { TicketStatus } from '../../../api/generated/model/ticketStatus';
+import { UserRole } from '../../../api/generated/model/userRole';
 import { Category } from '../domain/category';
 import { mapTicketComment, TicketComment, TicketCommentPage } from '../domain/ticket-comment';
 import { TicketFilters } from '../domain/ticket-filters';
 import { mapTicket, Ticket, TicketPage } from '../domain/ticket';
+import { AgentDirectoryEntry, mapAgentDirectoryEntry } from '../domain/user-directory';
 
 @Injectable({ providedIn: 'root' })
 export class TicketsDataAccess {
   private readonly categoriesApi = inject(CategoriesApi);
   private readonly ticketsApi = inject(TicketsApi);
+  private readonly usersApi = inject(UsersApi);
 
   listActiveCategories(): Observable<readonly Category[]> {
     return this.categoriesApi
@@ -27,6 +33,30 @@ export class TicketsDataAccess {
       );
   }
 
+  listActiveAgents(): Observable<readonly AgentDirectoryEntry[]> {
+    const loadPage = (page: number) =>
+      this.usersApi.listUsers(UserRole.AGENT, true, page, 100, 'body', false, {
+        transferCache: false,
+      });
+
+    return loadPage(1).pipe(
+      switchMap((firstPage) => {
+        const remainingPages = Array.from(
+          { length: Math.max(0, firstPage.total_pages - 1) },
+          (_, index) => index + 2,
+        );
+        const remaining = remainingPages.length
+          ? forkJoin(remainingPages.map((page) => loadPage(page)))
+          : of([]);
+        return remaining.pipe(
+          map((pages) =>
+            [firstPage, ...pages].flatMap((page) => page.items.map(mapAgentDirectoryEntry)),
+          ),
+        );
+      }),
+    );
+  }
+
   create(request: TicketCreate): Observable<Ticket> {
     return this.ticketsApi
       .createTicket(request, 'body', false, { transferCache: false })
@@ -38,10 +68,10 @@ export class TicketsDataAccess {
       .listTickets(
         filters.status,
         filters.priority,
+        filters.categoryId,
+        filters.assignedToId,
         undefined,
-        undefined,
-        undefined,
-        filters.unassigned,
+        filters.assignedToId === undefined ? filters.unassigned : undefined,
         filters.page,
         filters.pageSize,
         'body',
@@ -57,6 +87,34 @@ export class TicketsDataAccess {
           totalPages: response.total_pages,
         })),
       );
+  }
+
+  updateAssignment(ticketId: number, assignedToId: number | null): Observable<Ticket> {
+    return this.ticketsApi
+      .updateTicketAssignment(ticketId, { assigned_to_id: assignedToId }, 'body', false, {
+        transferCache: false,
+      })
+      .pipe(map(mapTicket));
+  }
+
+  updateStatus(ticketId: number, status: TicketStatus): Observable<Ticket> {
+    return this.ticketsApi
+      .updateTicketStatus(ticketId, { status }, 'body', false, { transferCache: false })
+      .pipe(map(mapTicket));
+  }
+
+  updatePriority(ticketId: number, priority: TicketPriority): Observable<Ticket> {
+    return this.ticketsApi
+      .updateTicketPriority(ticketId, { priority }, 'body', false, { transferCache: false })
+      .pipe(map(mapTicket));
+  }
+
+  updateCategory(ticketId: number, categoryId: number): Observable<Ticket> {
+    return this.ticketsApi
+      .updateTicketCategory(ticketId, { category_id: categoryId }, 'body', false, {
+        transferCache: false,
+      })
+      .pipe(map(mapTicket));
   }
 
   get(ticketId: number): Observable<Ticket> {
@@ -80,14 +138,18 @@ export class TicketsDataAccess {
   }
 
   addPublicComment(ticketId: number, content: string): Observable<TicketComment> {
+    return this.addComment(ticketId, content, CommentVisibility.PUBLIC);
+  }
+
+  addComment(
+    ticketId: number,
+    content: string,
+    visibility: CommentVisibility,
+  ): Observable<TicketComment> {
     return this.ticketsApi
-      .createTicketComment(
-        ticketId,
-        { content, visibility: CommentVisibility.PUBLIC },
-        'body',
-        false,
-        { transferCache: false },
-      )
+      .createTicketComment(ticketId, { content, visibility }, 'body', false, {
+        transferCache: false,
+      })
       .pipe(map(mapTicketComment));
   }
 }
