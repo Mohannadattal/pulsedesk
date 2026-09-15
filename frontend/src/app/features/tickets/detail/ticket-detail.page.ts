@@ -10,6 +10,7 @@ import { AppError, normalizeHttpError } from '../../../platform/http/app-error';
 import { PageMessageComponent } from '../../../shared/ui/page-message/page-message.component';
 import { LocalDateTimePipe } from '../../../shared/util/local-date-time.pipe';
 import { TicketsDataAccess } from '../data-access/tickets-data-access';
+import { TicketCommentsComponent } from '../comments/ticket-comments.component';
 import { Ticket } from '../domain/ticket';
 
 type TicketDetailState =
@@ -19,7 +20,13 @@ type TicketDetailState =
 
 @Component({
   selector: 'app-ticket-detail-page',
-  imports: [LocalDateTimePipe, MatButtonModule, PageMessageComponent, RouterLink],
+  imports: [
+    LocalDateTimePipe,
+    MatButtonModule,
+    PageMessageComponent,
+    RouterLink,
+    TicketCommentsComponent,
+  ],
   templateUrl: './ticket-detail.page.html',
   styleUrl: './ticket-detail.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

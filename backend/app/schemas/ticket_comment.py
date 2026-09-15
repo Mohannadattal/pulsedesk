@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.ticket_comment import CommentVisibility
 from app.schemas.types import UtcDateTime
+from app.schemas.user import UserReference
 
 
 class TicketCommentMutationRequest(BaseModel):
@@ -36,6 +37,7 @@ class TicketCommentResponse(BaseModel):
     id: int
     ticket_id: int
     author_id: int
+    author: UserReference
     content: str
     visibility: CommentVisibility
     created_at: UtcDateTime

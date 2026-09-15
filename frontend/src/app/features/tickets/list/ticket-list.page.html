@@ -10,6 +10,9 @@
       }}
     </p>
   </div>
+  @if (session.currentUser()?.role === 'EMPLOYEE') {
+    <a mat-flat-button routerLink="/tickets/new">Create ticket</a>
+  }
 </header>
 
 <section class="filters" aria-label="Ticket filters">
@@ -115,7 +118,9 @@
               <th scope="col">Status</th>
               <th scope="col">Priority</th>
               <th scope="col">Category</th>
-              <th class="optional-column" scope="col">Created by</th>
+              @if (session.currentUser()?.role !== 'EMPLOYEE') {
+                <th class="optional-column" scope="col">Created by</th>
+              }
               <th scope="col">Assigned to</th>
               <th scope="col">Created</th>
             </tr>
@@ -145,7 +150,9 @@
                   </span>
                 </td>
                 <td>{{ ticket.category.name }}</td>
-                <td class="optional-column">{{ ticket.creator.name }}</td>
+                @if (session.currentUser()?.role !== 'EMPLOYEE') {
+                  <td class="optional-column">{{ ticket.creator.name }}</td>
+                }
                 <td>{{ ticket.assignee?.name ?? 'Unassigned' }}</td>
                 <td>
                   <time

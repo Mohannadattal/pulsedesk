@@ -68,8 +68,13 @@ class TicketCommentService:
                 },
                 created_at=now,
             )
+            response_comment = self.ticket_comment_repository.get_by_id_with_author(
+                comment.id,
+            )
+            if response_comment is None:
+                raise RuntimeError("Created ticket comment could not be reloaded.")
             self.db.commit()
-            return comment
+            return response_comment
         except Exception:
             self.db.rollback()
             raise

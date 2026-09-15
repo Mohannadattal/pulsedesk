@@ -322,6 +322,9 @@
       },
       "TicketCommentResponse": {
         "properties": {
+          "author": {
+            "$ref": "#/components/schemas/UserReference"
+          },
           "author_id": {
             "title": "Author Id",
             "type": "integer"
@@ -356,6 +359,7 @@
           "id",
           "ticket_id",
           "author_id",
+          "author",
           "content",
           "visibility",
           "created_at",

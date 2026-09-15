@@ -1,0 +1,110 @@
+<section class="comments" aria-labelledby="comments-heading">
+  @let headerState = state();
+  <header class="comments__header">
+    <div>
+      <p class="eyebrow">Conversation</p>
+      <h2 id="comments-heading">Comments</h2>
+    </div>
+    @if (headerState.kind === 'loaded') {
+      <span
+        >{{ headerState.page.total }}
+        {{ headerState.page.total === 1 ? 'comment' : 'comments' }}</span
+      >
+    }
+  </header>
+
+  @if (session.currentUser()?.role === 'EMPLOYEE') {
+    <form class="comment-form" [formGroup]="commentForm" (ngSubmit)="submitComment()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>Add a public comment</mat-label>
+        <textarea
+          matInput
+          formControlName="content"
+          rows="4"
+          aria-describedby="comment-visibility-hint"
+        ></textarea>
+        @if (
+          commentForm.controls.content.hasError('required') ||
+          commentForm.controls.content.hasError('whitespace')
+        ) {
+          <mat-error>Enter a comment.</mat-error>
+        } @else if (commentForm.controls.content.hasError('maxUtf8Bytes')) {
+          <mat-error>Comment is too long.</mat-error>
+        } @else if (commentForm.controls.content.hasError('server')) {
+          <mat-error>{{ contentServerError() }}</mat-error>
+        }
+      </mat-form-field>
+      <div class="comment-form__footer">
+        <span id="comment-visibility-hint">Visible to you and the service team.</span>
+        <button mat-flat-button type="submit" [disabled]="submitting()">
+          @if (submitting()) {
+            <mat-spinner diameter="18" aria-label="Adding comment" />
+            <span>Adding…</span>
+          } @else {
+            <span>Add comment</span>
+          }
+        </button>
+      </div>
+      @if (submissionError()) {
+        <div class="form-error" role="alert">{{ submissionError() }}</div>
+      }
+      @if (submissionSuccess()) {
+        <div class="visually-hidden" role="status" aria-live="polite">
+          {{ submissionSuccess() }}
+        </div>
+      }
+    </form>
+  }
+
+  @let current = state();
+  @switch (current.kind) {
+    @case ('loading') {
+      <div class="comments__loading" role="status" aria-live="polite">Loading comments…</div>
+    }
+    @case ('error') {
+      <app-page-message
+        [kind]="current.error.kind === 'forbidden' ? 'forbidden' : 'error'"
+        [title]="commentsErrorTitle(current.error)"
+        [detail]="commentsErrorDetail(current.error)"
+        [actionLabel]="canRetry(current.error) ? 'Try again' : undefined"
+        (action)="retry()"
+      />
+    }
+    @case ('loaded') {
+      @if (current.page.items.length === 0) {
+        <div class="comments__empty" role="status">No comments yet.</div>
+      } @else {
+        <ol class="comment-list">
+          @for (comment of current.page.items; track comment.id) {
+            <li>
+              <div class="comment__meta">
+                <strong>{{ authorLabel(comment) }}</strong>
+                @if (session.currentUser()?.role !== 'EMPLOYEE') {
+                  <span class="visibility">{{ comment.visibility }}</span>
+                }
+                <time
+                  [attr.datetime]="comment.createdAt.toISOString()"
+                  [attr.title]="comment.createdAt | localDateTime: 'full'"
+                >
+                  {{ comment.createdAt | localDateTime }}
+                </time>
+              </div>
+              <p>{{ comment.content }}</p>
+            </li>
+          }
+        </ol>
+
+        @if (current.page.totalPages > 1) {
+          <mat-paginator
+            [length]="current.page.total"
+            [pageIndex]="current.page.page - 1"
+            [pageSize]="current.page.pageSize"
+            [hidePageSize]="true"
+            aria-label="Comment pages"
+            (page)="changePage($event)"
+          />
+        }
+      }
+    }
+  }
+</section>

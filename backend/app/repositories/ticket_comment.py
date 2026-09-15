@@ -1,7 +1,15 @@
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.ticket_comment import CommentVisibility, TicketComment
+from app.models.user import User
+
+
+COMMENT_AUTHOR_REFERENCE_OPTION = selectinload(TicketComment.author).load_only(
+    User.id,
+    User.first_name,
+    User.last_name,
+)
 
 
 class TicketCommentRepository:
@@ -13,6 +21,15 @@ class TicketCommentRepository:
         self.db.flush()
         self.db.refresh(comment)
         return comment
+
+    def get_by_id_with_author(self, comment_id: int) -> TicketComment | None:
+        statement = (
+            select(TicketComment)
+            .options(COMMENT_AUTHOR_REFERENCE_OPTION)
+            .where(TicketComment.id == comment_id)
+            .execution_options(populate_existing=True)
+        )
+        return self.db.scalar(statement)
 
     def list_for_ticket(
         self,
@@ -35,6 +52,7 @@ class TicketCommentRepository:
 
         statement = (
             select(TicketComment)
+            .options(COMMENT_AUTHOR_REFERENCE_OPTION)
             .where(*conditions)
             .order_by(TicketComment.created_at.asc(), TicketComment.id.asc())
             .offset((page - 1) * page_size)

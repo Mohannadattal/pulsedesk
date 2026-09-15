@@ -1,0 +1,116 @@
+<a class="back-link" routerLink="/tickets">← Back to tickets</a>
+
+<header class="page-header">
+  <p class="eyebrow">Employee request</p>
+  <h1>Create ticket</h1>
+  <p>Describe what you need help with. The service team will review your request.</p>
+</header>
+
+<section class="create-panel" aria-labelledby="ticket-form-heading">
+  <div class="create-panel__heading">
+    <h2 id="ticket-form-heading">Request details</h2>
+    <span>All fields are required</span>
+  </div>
+
+  @if (categoriesState().kind === 'loading') {
+    <mat-progress-bar mode="indeterminate" aria-label="Loading ticket categories" />
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-form-field appearance="outline">
+      <mat-label>Title</mat-label>
+      <input matInput formControlName="title" maxlength="200" autocomplete="off" />
+      <mat-hint align="end">{{ form.controls.title.value.length }} / 200</mat-hint>
+      @if (form.controls.title.hasError('required') || form.controls.title.hasError('whitespace')) {
+        <mat-error>Enter a title.</mat-error>
+      } @else if (form.controls.title.hasError('maxlength')) {
+        <mat-error>Title must be 200 characters or fewer.</mat-error>
+      } @else if (form.controls.title.hasError('server')) {
+        <mat-error>{{ serverFieldMessages().title }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Description</mat-label>
+      <textarea
+        matInput
+        formControlName="description"
+        rows="8"
+        aria-describedby="description-hint"
+      ></textarea>
+      @if (
+        form.controls.description.hasError('required') ||
+        form.controls.description.hasError('whitespace')
+      ) {
+        <mat-error>Enter a description.</mat-error>
+      } @else if (form.controls.description.hasError('maxUtf8Bytes')) {
+        <mat-error>Description is too long.</mat-error>
+      } @else if (form.controls.description.hasError('server')) {
+        <mat-error>{{ serverFieldMessages().description }}</mat-error>
+      }
+    </mat-form-field>
+    <span id="description-hint" class="visually-hidden">
+      Include the impact, what you expected, and any troubleshooting already attempted.
+    </span>
+
+    @let categories = categoriesState();
+    @switch (categories.kind) {
+      @case ('loaded') {
+        @if (categories.items.length > 0) {
+          <mat-form-field appearance="outline">
+            <mat-label>Category</mat-label>
+            <mat-select formControlName="categoryId">
+              @for (category of categories.items; track category.id) {
+                <mat-option [value]="category.id">{{ category.name }}</mat-option>
+              }
+            </mat-select>
+            @if (form.controls.categoryId.hasError('required')) {
+              <mat-error>Select a category.</mat-error>
+            } @else if (form.controls.categoryId.hasError('server')) {
+              <mat-error>{{ serverFieldMessages().categoryId }}</mat-error>
+            }
+          </mat-form-field>
+        } @else {
+          <app-page-message
+            title="No ticket categories are available"
+            detail="A ticket cannot be created until an active category is available."
+            actionLabel="Reload categories"
+            (action)="retryCategories()"
+          />
+        }
+      }
+      @case ('error') {
+        <app-page-message
+          kind="error"
+          [title]="categoriesErrorTitle(categories.error)"
+          detail="Try loading the categories again. Your draft will be preserved."
+          actionLabel="Try again"
+          (action)="retryCategories()"
+        />
+      }
+    }
+
+    @if (submissionError()) {
+      <div class="form-error" role="alert">
+        <span>{{ submissionError() }}</span>
+        @if (categoryRecoveryNeeded()) {
+          <button mat-stroked-button type="button" (click)="retryCategories()">
+            Reload categories
+          </button>
+        }
+      </div>
+    }
+
+    <div class="form-actions">
+      <a mat-button routerLink="/tickets">Cancel</a>
+      <button mat-flat-button type="submit" [disabled]="submitting() || !hasAvailableCategories()">
+        @if (submitting()) {
+          <mat-spinner diameter="18" aria-label="Creating ticket" />
+          <span>Creating…</span>
+        } @else {
+          <span>Create ticket</span>
+        }
+      </button>
+    </div>
+  </form>
+</section>

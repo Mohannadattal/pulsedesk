@@ -7,9 +7,11 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { UserReference } from './userReference';
 import { CommentVisibility } from './commentVisibility';
 
 export interface TicketCommentResponse {
+  author: UserReference;
   author_id: number;
   content: string;
   created_at: string;
