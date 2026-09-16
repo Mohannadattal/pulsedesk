@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -11,6 +11,7 @@ import { AppError, normalizeHttpError } from '../../../platform/http/app-error';
 import { PageMessageComponent } from '../../../shared/ui/page-message/page-message.component';
 import { LocalDateTimePipe } from '../../../shared/util/local-date-time.pipe';
 import { TicketsDataAccess } from '../data-access/tickets-data-access';
+import { TicketActivityComponent } from '../activity/ticket-activity.component';
 import { TicketCommentsComponent } from '../comments/ticket-comments.component';
 import { Ticket } from '../domain/ticket';
 import { canOperateTicket, TicketOperationsComponent } from './ticket-operations.component';
@@ -32,6 +33,7 @@ interface TicketDetailEvent {
     MatButtonModule,
     PageMessageComponent,
     RouterLink,
+    TicketActivityComponent,
     TicketCommentsComponent,
     TicketOperationsComponent,
   ],
@@ -43,6 +45,7 @@ export class TicketDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly tickets = inject(TicketsDataAccess);
   private readonly retryRequests = new Subject<void>();
+  private readonly activity = viewChild(TicketActivityComponent);
   protected readonly session = inject(AuthSessionStore);
   protected readonly terminalError = signal<AppError | null>(null);
   protected readonly state = signal<TicketDetailState>({ kind: 'loading' });
@@ -104,6 +107,15 @@ export class TicketDetailPage {
     this.authorityVersion += 1;
     this.terminalError.set(null);
     this.state.set({ kind: 'loaded', ticket });
+  }
+
+  protected mutationSucceeded(ticket: Ticket): void {
+    this.replaceTicket(ticket);
+    this.activity()?.refresh();
+  }
+
+  protected refreshActivity(): void {
+    this.activity()?.refresh();
   }
 
   protected ticketNotFound(): void {

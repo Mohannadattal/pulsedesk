@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.models.category import Category
 from app.repositories.exceptions import (
@@ -18,6 +18,20 @@ class CategoryRepository:
 
     def get_by_id(self, category_id: int) -> Category | None:
         return self.db.get(Category, category_id)
+
+    def get_display_references_by_ids(
+        self,
+        category_ids: set[int],
+    ) -> list[Category]:
+        """Resolve historical display references, including inactive categories."""
+        if not category_ids:
+            return []
+        statement = (
+            select(Category)
+            .options(load_only(Category.id, Category.name))
+            .where(Category.id.in_(category_ids))
+        )
+        return list(self.db.scalars(statement).all())
 
     def get_by_id_for_update(self, category_id: int) -> Category | None:
         statement = (

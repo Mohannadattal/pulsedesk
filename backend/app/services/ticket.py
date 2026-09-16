@@ -13,6 +13,7 @@ from app.exceptions.ticket import (
     TicketNumberAllocationError,
     TicketNotFoundError,
 )
+from app.models.category import Category
 from app.models.ticket import Ticket, TicketPriority, TicketStatus
 from app.models.ticket_event import TicketEventType
 from app.models.user import User, UserRole
@@ -21,7 +22,7 @@ from app.repositories.exceptions import DuplicateTicketNumberError
 from app.repositories.ticket import TicketRepository
 from app.repositories.user import UserRepository
 from app.schemas.ticket import TicketCreate, TicketListFilters, TicketListResponse
-from app.services.ticket_event import TicketEventRecorder
+from app.services.ticket_event import TicketEventRecorder, display_name
 from app.utils.time import utc_now_naive
 
 
@@ -76,7 +77,7 @@ class TicketService:
                 ticket = self.ticket_repository.save(ticket)
                 self.ticket_event_recorder.record(
                     ticket_id=ticket.id,
-                    actor_id=actor.id,
+                    actor=actor,
                     event_type=TicketEventType.TICKET_CREATED,
                     created_at=now,
                 )
@@ -144,6 +145,7 @@ class TicketService:
         self._require_support(actor)
         try:
             ticket = self._get_ticket(ticket_id)
+            assignee = None
             if assigned_to_id is not None:
                 assignee = self.user_repository.get_by_id(assigned_to_id)
                 if (
@@ -157,6 +159,12 @@ class TicketService:
             if old_assigned_to_id == assigned_to_id:
                 return self._commit_with_display_references(ticket)
 
+            old_assignee = (
+                self.user_repository.get_by_id(old_assigned_to_id)
+                if old_assigned_to_id is not None
+                else None
+            )
+
             ticket.assigned_to_id = assigned_to_id
             return self._save_and_commit(
                 ticket,
@@ -165,6 +173,26 @@ class TicketService:
                 field_name="assigned_to_id",
                 old_value=self._serialize_id(old_assigned_to_id),
                 new_value=self._serialize_id(assigned_to_id),
+                metadata={
+                    **(
+                        {
+                            TicketEventRecorder.OLD_ASSIGNEE_DISPLAY_NAME: display_name(
+                                old_assignee
+                            )
+                        }
+                        if old_assignee is not None
+                        else {}
+                    ),
+                    **(
+                        {
+                            TicketEventRecorder.NEW_ASSIGNEE_DISPLAY_NAME: display_name(
+                                assignee
+                            )
+                        }
+                        if assignee is not None
+                        else {}
+                    ),
+                },
             )
         except Exception:
             self.db.rollback()
@@ -247,10 +275,15 @@ class TicketService:
         self._require_support(actor)
         try:
             ticket = self._get_ticket(ticket_id)
-            self._get_active_category(category_id)
+            new_category = self._get_active_category(category_id)
             old_category_id = ticket.category_id
             if old_category_id == category_id:
                 return self._commit_with_display_references(ticket)
+
+            # The locked ticket row only carries the FK. Resolve its historical
+            # display value explicitly before changing it; this is one bounded
+            # lookup and avoids relationship lazy loading.
+            old_category = self.category_repository.get_by_id(old_category_id)
 
             ticket.category_id = category_id
             return self._save_and_commit(
@@ -260,6 +293,18 @@ class TicketService:
                 field_name="category_id",
                 old_value=str(old_category_id),
                 new_value=str(category_id),
+                metadata={
+                    **(
+                        {
+                            TicketEventRecorder.OLD_CATEGORY_DISPLAY_NAME: (
+                                old_category.name
+                            )
+                        }
+                        if old_category is not None
+                        else {}
+                    ),
+                    TicketEventRecorder.NEW_CATEGORY_DISPLAY_NAME: new_category.name,
+                },
             )
         except Exception:
             self.db.rollback()
@@ -271,12 +316,13 @@ class TicketService:
             raise TicketNotFoundError(ticket_id)
         return ticket
 
-    def _get_active_category(self, category_id: int) -> None:
+    def _get_active_category(self, category_id: int) -> Category:
         category = self.category_repository.get_by_id_for_update(category_id)
         if category is None:
             raise CategoryNotFoundError(category_id)
         if not category.is_active:
             raise InactiveCategoryError(category_id)
+        return category
 
     def _save_and_commit(
         self,
@@ -287,6 +333,7 @@ class TicketService:
         field_name: str,
         old_value: str | None,
         new_value: str | None,
+        metadata: dict[str, str] | None = None,
         lifecycle_event_type: TicketEventType | None = None,
         updated_at: datetime | None = None,
     ) -> Ticket:
@@ -295,17 +342,18 @@ class TicketService:
         ticket = self.ticket_repository.save(ticket)
         self.ticket_event_recorder.record(
             ticket_id=ticket.id,
-            actor_id=actor.id,
+            actor=actor,
             event_type=event_type,
             field_name=field_name,
             old_value=old_value,
             new_value=new_value,
+            metadata=metadata,
             created_at=event_created_at,
         )
         if lifecycle_event_type is not None:
             self.ticket_event_recorder.record(
                 ticket_id=ticket.id,
-                actor_id=actor.id,
+                actor=actor,
                 event_type=lifecycle_event_type,
                 created_at=event_created_at,
             )

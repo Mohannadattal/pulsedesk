@@ -7,16 +7,22 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { TicketEventCommentResponse } from './ticketEventCommentResponse';
+import { TicketEventActorResponse } from './ticketEventActorResponse';
 import { TicketEventType } from './ticketEventType';
 
 export interface TicketEventResponse {
+  actor: TicketEventActorResponse | null;
   actor_id: number | null;
+  comment: TicketEventCommentResponse | null;
   created_at: string;
   event_type: TicketEventType;
   field_name: string | null;
   id: number;
   metadata: { [key: string]: any } | null;
+  new_display_value: string | null;
   new_value: string | null;
+  old_display_value: string | null;
   old_value: string | null;
   ticket_id: number;
 }

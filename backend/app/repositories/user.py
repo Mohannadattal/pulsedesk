@@ -1,6 +1,6 @@
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.models.user import User, UserRole
 from app.repositories.exceptions import (
@@ -19,6 +19,17 @@ class UserRepository:
     def get_by_id(self, user_id: int) -> User | None:
         statement = select(User).where(User.id == user_id)
         return self.db.scalar(statement)
+
+    def get_display_references_by_ids(self, user_ids: set[int]) -> list[User]:
+        """Resolve historical display references, including inactive users."""
+        if not user_ids:
+            return []
+        statement = (
+            select(User)
+            .options(load_only(User.id, User.first_name, User.last_name))
+            .where(User.id.in_(user_ids))
+        )
+        return list(self.db.scalars(statement).all())
 
     def get_by_email(self, email: str) -> User | None:
         statement = select(User).where(User.email == email)

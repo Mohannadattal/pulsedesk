@@ -1,0 +1,66 @@
+<section class="activity" aria-labelledby="activity-heading" [attr.aria-busy]="isBusy()">
+  <header class="activity__header">
+    <div>
+      <p class="eyebrow">Audit history</p>
+      <h2 id="activity-heading">Activity</h2>
+    </div>
+    <button mat-button type="button" (click)="refresh()" [disabled]="isBusy()">
+      @if (refreshing()) {
+        <mat-spinner diameter="18" aria-hidden="true" />
+        <span>Refreshing…</span>
+      } @else {
+        <span>Refresh</span>
+      }
+    </button>
+  </header>
+
+  @if (initialLoading()) {
+    <div class="activity__state" role="status" aria-live="polite">Loading activity…</div>
+  } @else {
+    @if (failure()) {
+      <div class="activity__error" role="alert">
+        <span>{{ errorMessage() }}</span>
+        @if (canRetry()) {
+          <button mat-button type="button" (click)="retry()">Try again</button>
+        }
+      </div>
+    }
+
+    @if (items().length === 0 && !failure()) {
+      <div class="activity__state" role="status">No activity yet.</div>
+    } @else if (items().length > 0) {
+      <ol class="activity-list">
+        @for (activity of items(); track activity.id) {
+          <li [attr.data-kind]="activity.kind">
+            <p>{{ activity.description }}</p>
+            @if (activity.occurredAt; as occurredAt) {
+              <time
+                [attr.datetime]="occurredAt.toISOString()"
+                [attr.title]="occurredAt | localDateTime: 'full'"
+              >
+                {{ occurredAt | localDateTime }}
+              </time>
+            } @else {
+              <span class="activity__time-unavailable">Time unavailable</span>
+            }
+          </li>
+        }
+      </ol>
+    }
+
+    @if (hasMore()) {
+      <div class="activity__older">
+        <button mat-stroked-button type="button" (click)="loadOlder()" [disabled]="isBusy()">
+          @if (loadingOlder()) {
+            <mat-spinner diameter="18" aria-hidden="true" />
+            <span>Loading older…</span>
+          } @else {
+            <span>Load older activity</span>
+          }
+        </button>
+      </div>
+    }
+  }
+
+  <div class="visually-hidden" role="status" aria-live="polite">{{ statusMessage() }}</div>
+</section>

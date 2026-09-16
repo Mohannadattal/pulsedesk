@@ -19,6 +19,7 @@ class TicketEventRepository:
         *,
         page: int,
         page_size: int,
+        descending: bool,
     ) -> tuple[list[TicketEvent], int]:
         condition = TicketEvent.ticket_id == ticket_id
         count_statement = (
@@ -28,10 +29,15 @@ class TicketEventRepository:
         )
         total = self.db.scalar(count_statement) or 0
 
+        ordering = (
+            (TicketEvent.created_at.desc(), TicketEvent.id.desc())
+            if descending
+            else (TicketEvent.created_at.asc(), TicketEvent.id.asc())
+        )
         statement = (
             select(TicketEvent)
             .where(condition)
-            .order_by(TicketEvent.created_at.asc(), TicketEvent.id.asc())
+            .order_by(*ordering)
             .offset((page - 1) * page_size)
             .limit(page_size)
         )

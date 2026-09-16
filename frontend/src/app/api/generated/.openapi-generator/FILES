@@ -31,7 +31,10 @@ model/ticketCommentCreate.ts
 model/ticketCommentListResponse.ts
 model/ticketCommentResponse.ts
 model/ticketCreate.ts
+model/ticketEventActorResponse.ts
+model/ticketEventCommentResponse.ts
 model/ticketEventListResponse.ts
+model/ticketEventOrder.ts
 model/ticketEventResponse.ts
 model/ticketEventType.ts
 model/ticketListResponse.ts

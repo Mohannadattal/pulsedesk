@@ -118,11 +118,12 @@
       @if (isSupport()) {
         <app-ticket-operations
           [ticket]="ticket"
-          (ticketUpdated)="replaceTicket($event)"
+          (ticketUpdated)="mutationSucceeded($event)"
           (ticketNotFound)="ticketNotFound()"
         />
+        <app-ticket-activity [ticketId]="ticket.id" (ticketNotFound)="ticketNotFound()" />
       }
-      <app-ticket-comments [ticket]="ticket" />
+      <app-ticket-comments [ticket]="ticket" (commentAdded)="refreshActivity()" />
     }
   }
 }

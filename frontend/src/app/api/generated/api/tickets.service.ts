@@ -43,6 +43,8 @@ import { TicketCreate } from '../model/ticketCreate';
 // @ts-ignore
 import { TicketEventListResponse } from '../model/ticketEventListResponse';
 // @ts-ignore
+import { TicketEventOrder } from '../model/ticketEventOrder';
+// @ts-ignore
 import { TicketListResponse } from '../model/ticketListResponse';
 // @ts-ignore
 import { TicketPriority } from '../model/ticketPriority';
@@ -509,6 +511,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
    * @param ticketId
    * @param page
    * @param pageSize
+   * @param order
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
    * @param reportProgress flag to report request and response progress.
    */
@@ -516,6 +519,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
     ticketId: number,
     page?: number,
     pageSize?: number,
+    order?: TicketEventOrder,
     observe?: 'body',
     reportProgress?: boolean,
     options?: {
@@ -528,6 +532,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
     ticketId: number,
     page?: number,
     pageSize?: number,
+    order?: TicketEventOrder,
     observe?: 'response',
     reportProgress?: boolean,
     options?: {
@@ -540,6 +545,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
     ticketId: number,
     page?: number,
     pageSize?: number,
+    order?: TicketEventOrder,
     observe?: 'events',
     reportProgress?: boolean,
     options?: {
@@ -552,6 +558,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
     ticketId: number,
     page?: number,
     pageSize?: number,
+    order?: TicketEventOrder,
     observe: any = 'body',
     reportProgress: boolean = false,
     options?: {
@@ -573,6 +580,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
       <any>pageSize,
       'page_size',
     );
+    localVarQueryParameters = this.addToHttpParams(localVarQueryParameters, <any>order, 'order');
 
     let localVarHeaders = this.defaultHeaders;
 

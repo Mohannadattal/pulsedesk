@@ -396,6 +396,48 @@
         "title": "TicketCreate",
         "type": "object"
       },
+      "TicketEventActorResponse": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          }
+        },
+        "required": [
+          "id",
+          "display_name"
+        ],
+        "title": "TicketEventActorResponse",
+        "type": "object"
+      },
+      "TicketEventCommentResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/CommentVisibility"
+          }
+        },
+        "required": [
+          "id",
+          "visibility"
+        ],
+        "title": "TicketEventCommentResponse",
+        "type": "object"
+      },
       "TicketEventListResponse": {
         "properties": {
           "items": {
@@ -432,8 +474,26 @@
         "title": "TicketEventListResponse",
         "type": "object"
       },
+      "TicketEventOrder": {
+        "enum": [
+          "asc",
+          "desc"
+        ],
+        "title": "TicketEventOrder",
+        "type": "string"
+      },
       "TicketEventResponse": {
         "properties": {
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TicketEventActorResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "actor_id": {
             "anyOf": [
               {
@@ -444,6 +504,16 @@
               }
             ],
             "title": "Actor Id"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TicketEventCommentResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "created_at": {
             "format": "date-time",
@@ -482,6 +552,17 @@
             ],
             "title": "Metadata"
           },
+          "new_display_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Display Value"
+          },
           "new_value": {
             "anyOf": [
               {
@@ -492,6 +573,17 @@
               }
             ],
             "title": "New Value"
+          },
+          "old_display_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Display Value"
           },
           "old_value": {
             "anyOf": [
@@ -514,9 +606,13 @@
           "ticket_id",
           "actor_id",
           "event_type",
+          "actor",
           "field_name",
           "old_value",
           "new_value",
+          "old_display_value",
+          "new_display_value",
+          "comment",
           "metadata",
           "created_at"
         ],
@@ -2436,6 +2532,15 @@
               "minimum": 1,
               "title": "Page Size",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/TicketEventOrder",
+              "default": "asc"
             }
           }
         ],

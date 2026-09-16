@@ -97,4 +97,6 @@ def get_ticket_event_service(
     return TicketEventService(
         ticket_service=_build_ticket_service(db, ticket_event_repository),
         ticket_event_repository=ticket_event_repository,
+        user_repository=UserRepository(db),
+        category_repository=CategoryRepository(db),
     )

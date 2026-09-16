@@ -8,10 +8,12 @@ import { CommentVisibility } from '../../../api/generated/model/commentVisibilit
 import { TicketCreate } from '../../../api/generated/model/ticketCreate';
 import { TicketPriority } from '../../../api/generated/model/ticketPriority';
 import { TicketStatus } from '../../../api/generated/model/ticketStatus';
+import { TicketEventOrder } from '../../../api/generated/model/ticketEventOrder';
 import { UserRole } from '../../../api/generated/model/userRole';
 import { Category } from '../domain/category';
 import { mapTicketComment, TicketComment, TicketCommentPage } from '../domain/ticket-comment';
 import { TicketFilters } from '../domain/ticket-filters';
+import { mapTicketActivity, TicketActivityPage } from '../domain/ticket-activity';
 import { mapTicket, Ticket, TicketPage } from '../domain/ticket';
 import { AgentDirectoryEntry, mapAgentDirectoryEntry } from '../domain/user-directory';
 
@@ -133,6 +135,24 @@ export class TicketsDataAccess {
           pageSize: response.page_size,
           total: response.total,
           totalPages: response.total_pages,
+        })),
+      );
+  }
+
+  listActivity(ticketId: number, page: number, pageSize: number): Observable<TicketActivityPage> {
+    return this.ticketsApi
+      .listTicketEvents(ticketId, page, pageSize, TicketEventOrder.desc, 'body', false, {
+        transferCache: false,
+      })
+      .pipe(
+        map((response) => ({
+          items: response.items.flatMap((event) => {
+            const activity = mapTicketActivity(event);
+            return activity === null ? [] : [activity];
+          }),
+          rawPage: response.page,
+          rawPageSize: response.page_size,
+          rawTotalPages: response.total_pages,
         })),
       );
   }

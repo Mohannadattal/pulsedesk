@@ -60,7 +60,7 @@ class TicketCommentService:
             comment = self.ticket_comment_repository.create(comment)
             self.ticket_event_recorder.record(
                 ticket_id=ticket_id,
-                actor_id=actor.id,
+                actor=actor,
                 event_type=TicketEventType.COMMENT_ADDED,
                 metadata={
                     "comment_id": comment.id,

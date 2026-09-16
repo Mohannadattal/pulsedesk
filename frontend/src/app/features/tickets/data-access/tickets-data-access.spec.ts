@@ -7,6 +7,8 @@ import { TicketsApi } from '../../../api/generated/api/tickets.service';
 import { UsersApi } from '../../../api/generated/api/users.service';
 import { CommentVisibility } from '../../../api/generated/model/commentVisibility';
 import { TicketPriority } from '../../../api/generated/model/ticketPriority';
+import { TicketEventOrder } from '../../../api/generated/model/ticketEventOrder';
+import { TicketEventType } from '../../../api/generated/model/ticketEventType';
 import { TicketStatus } from '../../../api/generated/model/ticketStatus';
 import { UserRole } from '../../../api/generated/model/userRole';
 import { TicketsDataAccess } from './tickets-data-access';
@@ -16,6 +18,7 @@ describe('TicketsDataAccess', () => {
   const ticketsApi = {
     createTicketComment: vi.fn(),
     listTickets: vi.fn(),
+    listTicketEvents: vi.fn(),
     updateTicketAssignment: vi.fn(),
     updateTicketStatus: vi.fn(),
     updateTicketPriority: vi.fn(),
@@ -176,6 +179,101 @@ describe('TicketsDataAccess', () => {
       false,
       { transferCache: false },
     );
+  });
+
+  it('requests descending raw Activity pages and maps away suppressed rows', async () => {
+    ticketsApi.listTicketEvents.mockReturnValue(
+      of({
+        items: [
+          {
+            id: 2,
+            ticket_id: 17,
+            event_type: TicketEventType.TICKET_RESOLVED,
+            actor_id: 4,
+            actor: { id: 4, display_name: 'Ada Agent' },
+            field_name: null,
+            old_value: null,
+            new_value: null,
+            old_display_value: null,
+            new_display_value: null,
+            comment: null,
+            metadata: null,
+            created_at: '2026-09-15T10:00:00Z',
+          },
+          {
+            id: 1,
+            ticket_id: 17,
+            event_type: TicketEventType.STATUS_CHANGED,
+            actor_id: 4,
+            actor: { id: 4, display_name: 'Ada Agent' },
+            field_name: 'status',
+            old_value: 'IN_PROGRESS',
+            new_value: 'RESOLVED',
+            old_display_value: null,
+            new_display_value: null,
+            comment: null,
+            metadata: null,
+            created_at: '2026-09-15T10:00:00Z',
+          },
+        ],
+        page: 2,
+        page_size: 20,
+        total: 42,
+        total_pages: 3,
+      }),
+    );
+
+    const result = await firstValueFrom(TestBed.inject(TicketsDataAccess).listActivity(17, 2, 20));
+
+    expect(ticketsApi.listTicketEvents).toHaveBeenCalledWith(
+      17,
+      2,
+      20,
+      TicketEventOrder.desc,
+      'body',
+      false,
+      { transferCache: false },
+    );
+    expect(result).toMatchObject({ rawPage: 2, rawPageSize: 20, rawTotalPages: 3 });
+    expect(result.items.map((item) => item.id)).toEqual([2]);
+  });
+
+  it('keeps a malformed resolved-status row visible instead of suppressing the raw page', async () => {
+    ticketsApi.listTicketEvents.mockReturnValue(
+      of({
+        items: [
+          {
+            id: 1,
+            ticket_id: 17,
+            event_type: TicketEventType.STATUS_CHANGED,
+            actor_id: 4,
+            actor: { id: 4, display_name: 'Ada Agent' },
+            field_name: 'priority',
+            old_value: 'IN_PROGRESS',
+            new_value: 'RESOLVED',
+            old_display_value: null,
+            new_display_value: null,
+            comment: null,
+            metadata: {},
+            created_at: '2026-09-15T10:00:00Z',
+          },
+        ],
+        page: 1,
+        page_size: 20,
+        total: 1,
+        total_pages: 1,
+      }),
+    );
+
+    const result = await firstValueFrom(TestBed.inject(TicketsDataAccess).listActivity(17, 1, 20));
+
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: 1,
+        description: 'Unsupported ticket activity.',
+        kind: 'unsupported',
+      }),
+    ]);
   });
 
   it('sends exact mutation bodies and preserves embedded historical assignee display', async () => {

@@ -21,6 +21,7 @@ import { TicketCommentListResponse } from '../model/models';
 import { TicketCommentResponse } from '../model/models';
 import { TicketCreate } from '../model/models';
 import { TicketEventListResponse } from '../model/models';
+import { TicketEventOrder } from '../model/models';
 import { TicketListResponse } from '../model/models';
 import { TicketPriority } from '../model/models';
 import { TicketPriorityUpdate } from '../model/models';
@@ -84,11 +85,13 @@ export interface TicketsApiInterface {
    * @param ticketId
    * @param page
    * @param pageSize
+   * @param order
    */
   listTicketEvents(
     ticketId: number,
     page?: number,
     pageSize?: number,
+    order?: TicketEventOrder,
     extraHttpRequestParams?: any,
   ): Observable<TicketEventListResponse>;
 

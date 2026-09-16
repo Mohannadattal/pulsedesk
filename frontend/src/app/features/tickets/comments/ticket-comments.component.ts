@@ -4,6 +4,7 @@ import {
   DestroyRef,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
@@ -91,6 +92,7 @@ export class TicketCommentsComponent {
   private readonly reloadRequests = new Subject<void>();
 
   readonly ticket = input<Ticket | null>(null);
+  readonly commentAdded = output<void>();
   protected readonly session = inject(AuthSessionStore);
   protected readonly submitting = signal(false);
   protected readonly submissionError = signal<string | null>(null);
@@ -174,6 +176,7 @@ export class TicketCommentsComponent {
           this.commentForm.controls.content.reset();
           this.submissionSuccess.set('Comment added. Showing the newest comments.');
           this.pageRequests.next({ kind: 'newest' });
+          this.commentAdded.emit();
         },
         error: (error: unknown) => {
           this.submitting.set(false);
