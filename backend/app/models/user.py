@@ -1,11 +1,18 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, CheckConstraint, String, text
 from sqlalchemy.dialects.mysql import BIGINT, DATETIME
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+
+if TYPE_CHECKING:
+    from app.models.customer_verification import CustomerVerification
+    from app.models.ticket import Ticket
+    from app.models.ticket_comment import TicketComment
+    from app.models.ticket_event import TicketEvent
 
 
 class UserRole(StrEnum):
@@ -103,4 +110,8 @@ class User(Base):
 
     ticket_events: Mapped[list["TicketEvent"]] = relationship(
         back_populates="actor",
+    )
+
+    customer_verifications: Mapped[list["CustomerVerification"]] = relationship(
+        back_populates="verified_by",
     )

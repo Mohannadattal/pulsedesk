@@ -1,15 +1,15 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.category import Category
+from app.models.customer import Customer
 from app.models.ticket import Ticket, TicketPriority, TicketStatus
 from app.models.user import User
 from app.repositories.exceptions import (
     DuplicateTicketNumberError,
     is_mysql_duplicate_constraint,
 )
-
 
 TICKET_NUMBER_UNIQUE_CONSTRAINT = "uq_tickets_ticket_number"
 TICKET_DISPLAY_REFERENCE_OPTIONS = (
@@ -27,6 +27,12 @@ TICKET_DISPLAY_REFERENCE_OPTIONS = (
         User.first_name,
         User.last_name,
     ),
+    joinedload(Ticket.customer).load_only(
+        Customer.id,
+        Customer.customer_number,
+        Customer.first_name,
+        Customer.last_name,
+    ),
 )
 
 
@@ -42,15 +48,22 @@ class TicketRepository:
         self,
         ticket_id: int,
         *,
-        created_by_id: int | None,
+        employee_id: int | None = None,
+        created_by_id: int | None = None,
     ) -> Ticket | None:
         statement = (
             select(Ticket)
             .options(*TICKET_DISPLAY_REFERENCE_OPTIONS)
             .where(Ticket.id == ticket_id)
         )
-        if created_by_id is not None:
-            statement = statement.where(Ticket.created_by_id == created_by_id)
+        employee_scope = employee_id if employee_id is not None else created_by_id
+        if employee_scope is not None:
+            statement = statement.where(
+                or_(
+                    Ticket.created_by_id == employee_scope,
+                    Ticket.customer_id.is_not(None),
+                )
+            )
         return self.db.scalar(statement)
 
     def get_by_id_with_display_references(self, ticket_id: int) -> Ticket | None:
@@ -70,6 +83,7 @@ class TicketRepository:
         category_id: int | None,
         assigned_to_id: int | None,
         created_by_id: int | None,
+        customer_id: int | None,
         unassigned: bool | None,
         page: int,
         page_size: int,
@@ -85,6 +99,8 @@ class TicketRepository:
             conditions.append(Ticket.assigned_to_id == assigned_to_id)
         if created_by_id is not None:
             conditions.append(Ticket.created_by_id == created_by_id)
+        if customer_id is not None:
+            conditions.append(Ticket.customer_id == customer_id)
         if unassigned is True:
             conditions.append(Ticket.assigned_to_id.is_(None))
         elif unassigned is False:

@@ -1,11 +1,20 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.mysql import BIGINT, DATETIME
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+
+if TYPE_CHECKING:
+    from app.models.category import Category
+    from app.models.customer import Customer
+    from app.models.customer_verification import CustomerVerification
+    from app.models.ticket_comment import TicketComment
+    from app.models.ticket_event import TicketEvent
+    from app.models.user import User
 
 
 class TicketStatus(StrEnum):
@@ -54,6 +63,16 @@ class Ticket(Base):
             "status",
             "priority",
             "created_at",
+        ),
+        Index(
+            "ix_tickets_customer_created_at_id",
+            "customer_id",
+            "created_at",
+            "id",
+        ),
+        Index(
+            "ix_tickets_customer_verification_id",
+            "customer_verification_id",
         ),
     )
 
@@ -111,6 +130,18 @@ class Ticket(Base):
         nullable=True,
     )
 
+    customer_id: Mapped[int | None] = mapped_column(
+        BIGINT(unsigned=True),
+        ForeignKey("customers.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+
+    customer_verification_id: Mapped[int | None] = mapped_column(
+        BIGINT(unsigned=True),
+        ForeignKey("customer_verifications.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(fsp=6),
         nullable=False,
@@ -145,6 +176,15 @@ class Ticket(Base):
         foreign_keys=[assigned_to_id],
     )
 
+    customer: Mapped["Customer | None"] = relationship(
+        back_populates="tickets",
+        foreign_keys=[customer_id],
+    )
+
+    customer_verification: Mapped["CustomerVerification | None"] = relationship(
+        back_populates="tickets",
+    )
+
     comments: Mapped[list["TicketComment"]] = relationship(
         back_populates="ticket",
     )
@@ -152,3 +192,7 @@ class Ticket(Base):
     events: Mapped[list["TicketEvent"]] = relationship(
         back_populates="ticket",
     )
+
+    @property
+    def customer_was_verified(self) -> bool:
+        return self.customer_verification_id is not None

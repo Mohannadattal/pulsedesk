@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -33,6 +34,9 @@ class TicketEventRecorder:
     NEW_ASSIGNEE_DISPLAY_NAME = "new_assignee_display_name"
     OLD_CATEGORY_DISPLAY_NAME = "old_category_display_name"
     NEW_CATEGORY_DISPLAY_NAME = "new_category_display_name"
+    CUSTOMER_ID = "customer_id"
+    CUSTOMER_NUMBER = "customer_number"
+    CUSTOMER_VERIFICATION_ID = "customer_verification_id"
 
     def __init__(self, ticket_event_repository: TicketEventRepository) -> None:
         self.ticket_event_repository = ticket_event_repository
@@ -105,9 +109,7 @@ class TicketEventService:
     def _build_responses(self, events: list[TicketEvent]) -> list[TicketEventResponse]:
         user_ids: set[int] = set()
         category_ids: set[int] = set()
-        sanitized_events = [
-            (event, self._sanitize_metadata(event)) for event in events
-        ]
+        sanitized_events = [(event, self._sanitize_metadata(event)) for event in events]
 
         for event, metadata in sanitized_events:
             if (
@@ -261,6 +263,23 @@ class TicketEventService:
                 member.value for member in CommentVisibility
             }:
                 metadata["visibility"] = visibility
+        elif event.event_type == TicketEventType.TICKET_CREATED.value:
+            for key in (
+                TicketEventRecorder.CUSTOMER_ID,
+                TicketEventRecorder.CUSTOMER_VERIFICATION_ID,
+            ):
+                value = raw_metadata.get(key)
+                if (
+                    isinstance(value, int)
+                    and not isinstance(value, bool)
+                    and 0 < value <= MAX_UNSIGNED_BIGINT
+                ):
+                    metadata[key] = value
+            customer_number = raw_metadata.get(TicketEventRecorder.CUSTOMER_NUMBER)
+            if isinstance(customer_number, str) and re.fullmatch(
+                r"CUS-[0-9A-HJKMNP-TV-Z]{16}", customer_number
+            ):
+                metadata[TicketEventRecorder.CUSTOMER_NUMBER] = customer_number
 
         return metadata
 

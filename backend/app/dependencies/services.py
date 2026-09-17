@@ -8,19 +8,21 @@ from app.core.config import settings
 from app.core.security import AccessTokenManager, password_hasher
 from app.dependencies.database import get_db
 from app.repositories.category import CategoryRepository
+from app.repositories.customer import CustomerRepository
+from app.repositories.customer_verification import CustomerVerificationRepository
+from app.repositories.password_reset_request import PasswordResetRequestRepository
 from app.repositories.ticket import TicketRepository
 from app.repositories.ticket_comment import TicketCommentRepository
 from app.repositories.ticket_event import TicketEventRepository
 from app.repositories.user import UserRepository
-from app.repositories.password_reset_request import PasswordResetRequestRepository
 from app.services.auth import AuthenticationService
 from app.services.category import CategoryService
+from app.services.customer import CustomerService
+from app.services.password_reset_request import PasswordResetService
 from app.services.ticket import TicketService
 from app.services.ticket_comment import TicketCommentService
 from app.services.ticket_event import TicketEventRecorder, TicketEventService
 from app.services.user import UserService
-from app.services.password_reset_request import PasswordResetService
-
 
 access_token_manager = AccessTokenManager(
     secret=settings.jwt_secret.get_secret_value(),
@@ -75,6 +77,16 @@ def get_category_service(
     )
 
 
+def get_customer_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> CustomerService:
+    return CustomerService(
+        db=db,
+        customer_repository=CustomerRepository(db),
+        verification_repository=CustomerVerificationRepository(db),
+    )
+
+
 def _build_ticket_service(
     db: Session,
     ticket_event_repository: TicketEventRepository | None = None,
@@ -86,6 +98,8 @@ def _build_ticket_service(
         category_repository=CategoryRepository(db),
         user_repository=UserRepository(db),
         ticket_event_recorder=TicketEventRecorder(event_repository),
+        customer_repository=CustomerRepository(db),
+        customer_verification_repository=CustomerVerificationRepository(db),
     )
 
 

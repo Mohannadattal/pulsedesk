@@ -6,25 +6,33 @@ from sqlalchemy.orm import Session
 
 from app.exceptions.auth import AuthorizationError
 from app.exceptions.category import CategoryNotFoundError, InactiveCategoryError
+from app.exceptions.customer import (
+    CustomerNotFoundError,
+    CustomerVerificationInvalidError,
+    CustomerVerificationNotFoundError,
+    InactiveCustomerError,
+)
 from app.exceptions.ticket import (
     InvalidTicketAssigneeError,
     InvalidTicketFilterError,
     InvalidTicketStatusTransitionError,
-    TicketNumberAllocationError,
     TicketNotFoundError,
+    TicketNumberAllocationError,
 )
 from app.models.category import Category
+from app.models.customer import Customer
 from app.models.ticket import Ticket, TicketPriority, TicketStatus
 from app.models.ticket_event import TicketEventType
 from app.models.user import User, UserRole
 from app.repositories.category import CategoryRepository
+from app.repositories.customer import CustomerRepository
+from app.repositories.customer_verification import CustomerVerificationRepository
 from app.repositories.exceptions import DuplicateTicketNumberError
 from app.repositories.ticket import TicketRepository
 from app.repositories.user import UserRepository
 from app.schemas.ticket import TicketCreate, TicketListFilters, TicketListResponse
 from app.services.ticket_event import TicketEventRecorder, display_name
 from app.utils.time import utc_now_naive
-
 
 TICKET_NUMBER_ATTEMPTS = 3
 ALLOWED_STATUS_TRANSITIONS = {
@@ -47,38 +55,66 @@ class TicketService:
         category_repository: CategoryRepository,
         user_repository: UserRepository,
         ticket_event_recorder: TicketEventRecorder,
+        customer_repository: CustomerRepository | None = None,
+        customer_verification_repository: CustomerVerificationRepository | None = None,
     ) -> None:
         self.db = db
         self.ticket_repository = ticket_repository
         self.category_repository = category_repository
         self.user_repository = user_repository
         self.ticket_event_recorder = ticket_event_recorder
+        self.customer_repository = customer_repository or CustomerRepository(db)
+        self.customer_verification_repository = (
+            customer_verification_repository or CustomerVerificationRepository(db)
+        )
 
     def create_ticket(self, data: TicketCreate, actor: User) -> Ticket:
+        if actor.role not in {UserRole.EMPLOYEE.value, UserRole.ADMIN.value}:
+            raise AuthorizationError
         last_collision: DuplicateTicketNumberError | None = None
         for _attempt in range(TICKET_NUMBER_ATTEMPTS):
-            now = utc_now_naive()
-            ticket = Ticket(
-                ticket_number=_generate_ticket_number(),
-                title=data.title,
-                description=data.description,
-                status=TicketStatus.OPEN.value,
-                priority=TicketPriority.MEDIUM.value,
-                category_id=data.category_id,
-                created_by_id=actor.id,
-                assigned_to_id=None,
-                created_at=now,
-                updated_at=now,
-                resolved_at=None,
-                closed_at=None,
-            )
             try:
                 self._get_active_category(data.category_id)
+                customer = self._lock_active_customer(data.customer_id)
+                now = self._validate_customer_verification(data, actor, customer)
+                ticket = Ticket(
+                    ticket_number=_generate_ticket_number(),
+                    title=data.title,
+                    description=data.description,
+                    status=TicketStatus.OPEN.value,
+                    priority=TicketPriority.MEDIUM.value,
+                    category_id=data.category_id,
+                    created_by_id=actor.id,
+                    assigned_to_id=None,
+                    customer_id=data.customer_id,
+                    customer_verification_id=data.customer_verification_id,
+                    created_at=now,
+                    updated_at=now,
+                    resolved_at=None,
+                    closed_at=None,
+                )
                 ticket = self.ticket_repository.save(ticket)
                 self.ticket_event_recorder.record(
                     ticket_id=ticket.id,
                     actor=actor,
                     event_type=TicketEventType.TICKET_CREATED,
+                    metadata=(
+                        {
+                            "customer_id": customer.id,
+                            "customer_number": customer.customer_number,
+                            **(
+                                {
+                                    "customer_verification_id": (
+                                        data.customer_verification_id
+                                    )
+                                }
+                                if data.customer_verification_id is not None
+                                else {}
+                            ),
+                        }
+                        if customer is not None
+                        else None
+                    ),
                     created_at=now,
                 )
                 return self._commit_with_display_references(ticket)
@@ -95,10 +131,10 @@ class TicketService:
         raise allocation_error
 
     def get_ticket(self, ticket_id: int, actor: User) -> Ticket:
-        creator_scope = actor.id if actor.role == UserRole.EMPLOYEE.value else None
+        employee_scope = actor.id if actor.role == UserRole.EMPLOYEE.value else None
         ticket = self.ticket_repository.get_visible_by_id(
             ticket_id,
-            created_by_id=creator_scope,
+            employee_id=employee_scope,
         )
         if ticket is None:
             raise TicketNotFoundError(ticket_id)
@@ -124,6 +160,39 @@ class TicketService:
             category_id=filters.category_id,
             assigned_to_id=filters.assigned_to_id,
             created_by_id=created_by_id,
+            customer_id=filters.customer_id,
+            unassigned=filters.unassigned,
+            page=filters.page,
+            page_size=filters.page_size,
+        )
+        return TicketListResponse(
+            items=tickets,
+            page=filters.page,
+            page_size=filters.page_size,
+            total=total,
+            total_pages=(total + filters.page_size - 1) // filters.page_size,
+        )
+
+    def list_customer_tickets(
+        self,
+        customer_id: int,
+        filters: TicketListFilters,
+        actor: User,
+    ) -> TicketListResponse:
+        if actor.role not in {UserRole.EMPLOYEE.value, UserRole.ADMIN.value}:
+            raise AuthorizationError
+        if filters.assigned_to_id is not None and filters.unassigned is not None:
+            raise InvalidTicketFilterError
+        customer = self.customer_repository.get_by_id(customer_id)
+        if customer is None:
+            raise CustomerNotFoundError
+        tickets, total = self.ticket_repository.list(
+            status=filters.status,
+            priority=filters.priority,
+            category_id=filters.category_id,
+            assigned_to_id=filters.assigned_to_id,
+            created_by_id=filters.created_by_id,
+            customer_id=customer_id,
             unassigned=filters.unassigned,
             page=filters.page,
             page_size=filters.page_size,
@@ -323,6 +392,40 @@ class TicketService:
         if not category.is_active:
             raise InactiveCategoryError(category_id)
         return category
+
+    def _lock_active_customer(self, customer_id: int | None) -> Customer | None:
+        if customer_id is None:
+            return None
+        customer = self.customer_repository.get_by_id_for_update(customer_id)
+        if customer is None:
+            raise CustomerNotFoundError
+        if not customer.is_active:
+            raise InactiveCustomerError
+        return customer
+
+    def _validate_customer_verification(
+        self,
+        data: TicketCreate,
+        actor: User,
+        customer: Customer | None,
+    ) -> datetime:
+        if data.customer_verification_id is None:
+            return utc_now_naive()
+        assert customer is not None
+        verification = self.customer_verification_repository.get_by_id(
+            data.customer_verification_id
+        )
+        if verification is None:
+            raise CustomerVerificationNotFoundError
+        if (
+            verification.customer_id != customer.id
+            or verification.verified_by_user_id != actor.id
+        ):
+            raise CustomerVerificationInvalidError
+        now = utc_now_naive()
+        if verification.expires_at <= now:
+            raise CustomerVerificationInvalidError
+        return now
 
     def _save_and_commit(
         self,

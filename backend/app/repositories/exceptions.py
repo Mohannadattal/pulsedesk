@@ -2,7 +2,6 @@ import re
 
 from sqlalchemy.exc import IntegrityError
 
-
 MYSQL_DUPLICATE_ENTRY_ERROR_CODE = 1062
 
 
@@ -33,6 +32,10 @@ class DuplicateCategoryNameError(Exception):
 
 class DuplicateTicketNumberError(Exception):
     """Raised when persistence rejects a duplicate ticket number."""
+
+
+class DuplicateCustomerNumberError(Exception):
+    """Raised when persistence rejects a duplicate customer number."""
 
 
 class DuplicatePendingPasswordResetRequestError(Exception):

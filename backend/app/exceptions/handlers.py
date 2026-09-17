@@ -20,10 +20,25 @@ from app.exceptions.category import (
     CategoryNotFoundError,
     InactiveCategoryError,
 )
+from app.exceptions.customer import (
+    CustomerContactRequiredError,
+    CustomerNotFoundError,
+    CustomerNumberAllocationError,
+    CustomerPotentialDuplicateError,
+    CustomerVerificationFactorUnavailableError,
+    CustomerVerificationInvalidError,
+    CustomerVerificationNotFoundError,
+    InactiveCustomerError,
+)
 from app.exceptions.database import (
     DatabaseFailureKind,
     classify_database_error,
     get_mysql_error_code,
+)
+from app.exceptions.password_reset_request import (
+    PasswordResetRequestNotFoundError,
+    PasswordResetRequestResolvedError,
+    PasswordResetTargetInactiveError,
 )
 from app.exceptions.ticket import (
     InvalidTicketAssigneeError,
@@ -32,11 +47,6 @@ from app.exceptions.ticket import (
     TicketNotFoundError,
     TicketNumberAllocationError,
 )
-from app.exceptions.password_reset_request import (
-    PasswordResetRequestNotFoundError,
-    PasswordResetRequestResolvedError,
-    PasswordResetTargetInactiveError,
-)
 from app.exceptions.user import (
     LastActiveAdminRequiredError,
     UserAlreadyExistsError,
@@ -44,7 +54,6 @@ from app.exceptions.user import (
     UserSelfDeactivationForbiddenError,
 )
 from app.schemas.error import ErrorCode
-
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +154,41 @@ DOMAIN_ERROR_DETAILS: dict[type[Exception], tuple[int, ErrorCode, str]] = {
         status.HTTP_422_UNPROCESSABLE_CONTENT,
         ErrorCode.INVALID_TICKET_FILTER,
         "Ticket filters are invalid.",
+    ),
+    CustomerNotFoundError: (
+        status.HTTP_404_NOT_FOUND,
+        ErrorCode.CUSTOMER_NOT_FOUND,
+        "Customer was not found.",
+    ),
+    InactiveCustomerError: (
+        status.HTTP_409_CONFLICT,
+        ErrorCode.CUSTOMER_INACTIVE,
+        "Customer is inactive.",
+    ),
+    CustomerContactRequiredError: (
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        ErrorCode.CUSTOMER_CONTACT_REQUIRED,
+        "At least one customer contact method is required.",
+    ),
+    CustomerPotentialDuplicateError: (
+        status.HTTP_409_CONFLICT,
+        ErrorCode.CUSTOMER_POTENTIAL_DUPLICATE,
+        "A potential duplicate customer requires explicit confirmation.",
+    ),
+    CustomerVerificationNotFoundError: (
+        status.HTTP_404_NOT_FOUND,
+        ErrorCode.CUSTOMER_VERIFICATION_NOT_FOUND,
+        "Customer verification was not found.",
+    ),
+    CustomerVerificationInvalidError: (
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        ErrorCode.CUSTOMER_VERIFICATION_INVALID,
+        "Customer verification is not valid for this ticket.",
+    ),
+    CustomerVerificationFactorUnavailableError: (
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        ErrorCode.CUSTOMER_VERIFICATION_FACTOR_UNAVAILABLE,
+        "A selected verification factor is unavailable.",
     ),
 }
 
@@ -275,6 +319,25 @@ def register_exception_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         logger.error(
             "Ticket-number allocation exhausted after %s attempts "
+            "(method=%s, path=%s)\n%s",
+            exc.attempt_count,
+            request.method,
+            request.url.path,
+            _safe_traceback(exc),
+        )
+        return _error_response(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code=ErrorCode.INTERNAL_ERROR,
+            detail=INTERNAL_ERROR_DETAIL,
+        )
+
+    @app.exception_handler(CustomerNumberAllocationError)
+    async def handle_customer_number_allocation_error(
+        request: Request,
+        exc: CustomerNumberAllocationError,
+    ) -> JSONResponse:
+        logger.error(
+            "Customer-number allocation exhausted after %s attempts "
             "(method=%s, path=%s)\n%s",
             exc.attempt_count,
             request.method,

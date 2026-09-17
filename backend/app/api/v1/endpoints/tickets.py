@@ -2,13 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, status
 
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, require_roles
 from app.dependencies.services import (
     get_ticket_comment_service,
     get_ticket_event_service,
     get_ticket_service,
 )
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.error import ErrorResponse, ValidationErrorResponse
 from app.schemas.ticket import (
     TicketAssignmentUpdate,
@@ -30,7 +30,6 @@ from app.schemas.ticket_event import TicketEventListFilters, TicketEventListResp
 from app.services.ticket import TicketService
 from app.services.ticket_comment import TicketCommentService
 from app.services.ticket_event import TicketEventService
-
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
@@ -54,19 +53,25 @@ AUTH_RESPONSES = {
     responses={
         **AUTH_RESPONSES,
         status.HTTP_404_NOT_FOUND: {
-            "description": "Category not found.",
+            "description": "Category, Customer, or Customer verification not found.",
             "model": ErrorResponse,
         },
         status.HTTP_409_CONFLICT: {
-            "description": "Category is inactive.",
+            "description": "Category or Customer is inactive.",
             "model": ErrorResponse,
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Request validation failed or Customer verification is invalid.",
+            "model": ErrorResponse | ValidationErrorResponse,
         },
     },
 )
 def create_ticket(
     data: TicketCreate,
     ticket_service: Annotated[TicketService, Depends(get_ticket_service)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[
+        User, Depends(require_roles(UserRole.EMPLOYEE, UserRole.ADMIN))
+    ],
 ) -> TicketResponse:
     return ticket_service.create_ticket(data, current_user)
 
