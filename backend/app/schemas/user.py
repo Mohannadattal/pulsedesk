@@ -1,6 +1,14 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictBool, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    StrictBool,
+    field_validator,
+)
 
 from app.models.user import UserRole
+from app.schemas.password import PasswordValue
 from app.schemas.types import UtcDateTime
 
 
@@ -27,14 +35,14 @@ class UserBase(BaseModel):
 
 
 class UserProvisionRequest(UserBase):
-    password: str = Field(min_length=8, max_length=128)
+    password: PasswordValue
 
 
 class InitialAdminCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: PasswordValue
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
 

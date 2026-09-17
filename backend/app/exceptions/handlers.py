@@ -9,7 +9,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.exceptions.auth import AuthenticationError, AuthorizationError
+from app.exceptions.auth import (
+    AuthenticationError,
+    AuthorizationError,
+    PasswordConfirmationMismatchError,
+    PasswordReuseError,
+)
 from app.exceptions.category import (
     CategoryAlreadyExistsError,
     CategoryNotFoundError,
@@ -26,6 +31,11 @@ from app.exceptions.ticket import (
     InvalidTicketStatusTransitionError,
     TicketNotFoundError,
     TicketNumberAllocationError,
+)
+from app.exceptions.password_reset_request import (
+    PasswordResetRequestNotFoundError,
+    PasswordResetRequestResolvedError,
+    PasswordResetTargetInactiveError,
 )
 from app.exceptions.user import (
     LastActiveAdminRequiredError,
@@ -75,6 +85,31 @@ DOMAIN_ERROR_DETAILS: dict[type[Exception], tuple[int, ErrorCode, str]] = {
         status.HTTP_409_CONFLICT,
         ErrorCode.LAST_ACTIVE_ADMIN_REQUIRED,
         "At least one administrator must remain active.",
+    ),
+    PasswordConfirmationMismatchError: (
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        ErrorCode.PASSWORD_CONFIRMATION_MISMATCH,
+        "Password confirmation does not match.",
+    ),
+    PasswordReuseError: (
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        ErrorCode.PASSWORD_REUSE_NOT_ALLOWED,
+        "The new password must differ from the temporary password.",
+    ),
+    PasswordResetRequestNotFoundError: (
+        status.HTTP_404_NOT_FOUND,
+        ErrorCode.PASSWORD_RESET_REQUEST_NOT_FOUND,
+        "Password reset request was not found.",
+    ),
+    PasswordResetRequestResolvedError: (
+        status.HTTP_409_CONFLICT,
+        ErrorCode.PASSWORD_RESET_REQUEST_RESOLVED,
+        "Password reset request has already been resolved.",
+    ),
+    PasswordResetTargetInactiveError: (
+        status.HTTP_409_CONFLICT,
+        ErrorCode.PASSWORD_RESET_TARGET_INACTIVE,
+        "Password reset target is inactive.",
     ),
     CategoryNotFoundError: (
         status.HTTP_404_NOT_FOUND,

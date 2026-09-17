@@ -23,13 +23,19 @@ import { CustomHttpParameterCodec } from '../encoder';
 import { Observable } from 'rxjs';
 
 // @ts-ignore
-import { AccessTokenResponse } from '../model/accessTokenResponse';
+import { AuthSessionResponse } from '../model/authSessionResponse';
+// @ts-ignore
+import { AuthSessionStateResponse } from '../model/authSessionStateResponse';
+// @ts-ignore
+import { CompletePasswordChangeRequest } from '../model/completePasswordChangeRequest';
 // @ts-ignore
 import { ErrorResponse } from '../model/errorResponse';
 // @ts-ignore
 import { LoginRequest } from '../model/loginRequest';
 // @ts-ignore
-import { UserResponse } from '../model/userResponse';
+import { PasswordResetRequestAcceptedResponse } from '../model/passwordResetRequestAcceptedResponse';
+// @ts-ignore
+import { PasswordResetRequestCreate } from '../model/passwordResetRequestCreate';
 // @ts-ignore
 import { ValidationErrorResponse } from '../model/validationErrorResponse';
 
@@ -52,6 +58,111 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
   }
 
   /**
+   * Complete Password Change
+   * @param completePasswordChangeRequest
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public completePasswordChange(
+    completePasswordChangeRequest: CompletePasswordChangeRequest,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<AuthSessionResponse>;
+  public completePasswordChange(
+    completePasswordChangeRequest: CompletePasswordChangeRequest,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpResponse<AuthSessionResponse>>;
+  public completePasswordChange(
+    completePasswordChangeRequest: CompletePasswordChangeRequest,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpEvent<AuthSessionResponse>>;
+  public completePasswordChange(
+    completePasswordChangeRequest: CompletePasswordChangeRequest,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<any> {
+    if (completePasswordChangeRequest === null || completePasswordChangeRequest === undefined) {
+      throw new Error(
+        'Required parameter completePasswordChangeRequest was null or undefined when calling completePasswordChange.',
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (HTTPBearer) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'HTTPBearer',
+      'Authorization',
+      localVarHeaders,
+      'Bearer ',
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+    }
+
+    const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    // to determine the Content-Type header
+    const consumes: string[] = ['application/json'];
+    const httpContentTypeSelected: string | undefined =
+      this.configuration.selectHeaderContentType(consumes);
+    if (httpContentTypeSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+    }
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/auth/complete-password-change`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<AuthSessionResponse>('post', `${basePath}${localVarPath}`, {
+      context: localVarHttpContext,
+      body: completePasswordChangeRequest,
+      responseType: <any>responseType_,
+      ...(withCredentials ? { withCredentials } : {}),
+      headers: localVarHeaders,
+      observe: observe,
+      transferCache: localVarTransferCache,
+      reportProgress: reportProgress,
+    });
+  }
+
+  /**
    * Read Current User
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
    * @param reportProgress flag to report request and response progress.
@@ -64,7 +175,7 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
       context?: HttpContext;
       transferCache?: boolean;
     },
-  ): Observable<UserResponse>;
+  ): Observable<AuthSessionStateResponse>;
   public getCurrentUser(
     observe?: 'response',
     reportProgress?: boolean,
@@ -73,7 +184,7 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
       context?: HttpContext;
       transferCache?: boolean;
     },
-  ): Observable<HttpResponse<UserResponse>>;
+  ): Observable<HttpResponse<AuthSessionStateResponse>>;
   public getCurrentUser(
     observe?: 'events',
     reportProgress?: boolean,
@@ -82,7 +193,7 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
       context?: HttpContext;
       transferCache?: boolean;
     },
-  ): Observable<HttpEvent<UserResponse>>;
+  ): Observable<HttpEvent<AuthSessionStateResponse>>;
   public getCurrentUser(
     observe: any = 'body',
     reportProgress: boolean = false,
@@ -125,7 +236,7 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
 
     let localVarPath = `/api/v1/auth/me`;
     const { basePath, withCredentials } = this.configuration;
-    return this.httpClient.request<UserResponse>('get', `${basePath}${localVarPath}`, {
+    return this.httpClient.request<AuthSessionStateResponse>('get', `${basePath}${localVarPath}`, {
       context: localVarHttpContext,
       responseType: <any>responseType_,
       ...(withCredentials ? { withCredentials } : {}),
@@ -151,7 +262,7 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
       context?: HttpContext;
       transferCache?: boolean;
     },
-  ): Observable<AccessTokenResponse>;
+  ): Observable<AuthSessionResponse>;
   public login(
     loginRequest: LoginRequest,
     observe?: 'response',
@@ -161,7 +272,7 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
       context?: HttpContext;
       transferCache?: boolean;
     },
-  ): Observable<HttpResponse<AccessTokenResponse>>;
+  ): Observable<HttpResponse<AuthSessionResponse>>;
   public login(
     loginRequest: LoginRequest,
     observe?: 'events',
@@ -171,7 +282,7 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
       context?: HttpContext;
       transferCache?: boolean;
     },
-  ): Observable<HttpEvent<AccessTokenResponse>>;
+  ): Observable<HttpEvent<AuthSessionResponse>>;
   public login(
     loginRequest: LoginRequest,
     observe: any = 'body',
@@ -219,7 +330,7 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
 
     let localVarPath = `/api/v1/auth/login`;
     const { basePath, withCredentials } = this.configuration;
-    return this.httpClient.request<AccessTokenResponse>('post', `${basePath}${localVarPath}`, {
+    return this.httpClient.request<AuthSessionResponse>('post', `${basePath}${localVarPath}`, {
       context: localVarHttpContext,
       body: loginRequest,
       responseType: <any>responseType_,
@@ -229,5 +340,106 @@ export class AuthenticationApi extends BaseService implements AuthenticationApiI
       transferCache: localVarTransferCache,
       reportProgress: reportProgress,
     });
+  }
+
+  /**
+   * Request Password Reset
+   * @param passwordResetRequestCreate
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public requestPasswordReset(
+    passwordResetRequestCreate: PasswordResetRequestCreate,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<PasswordResetRequestAcceptedResponse>;
+  public requestPasswordReset(
+    passwordResetRequestCreate: PasswordResetRequestCreate,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpResponse<PasswordResetRequestAcceptedResponse>>;
+  public requestPasswordReset(
+    passwordResetRequestCreate: PasswordResetRequestCreate,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpEvent<PasswordResetRequestAcceptedResponse>>;
+  public requestPasswordReset(
+    passwordResetRequestCreate: PasswordResetRequestCreate,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<any> {
+    if (passwordResetRequestCreate === null || passwordResetRequestCreate === undefined) {
+      throw new Error(
+        'Required parameter passwordResetRequestCreate was null or undefined when calling requestPasswordReset.',
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+    }
+
+    const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    // to determine the Content-Type header
+    const consumes: string[] = ['application/json'];
+    const httpContentTypeSelected: string | undefined =
+      this.configuration.selectHeaderContentType(consumes);
+    if (httpContentTypeSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+    }
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/auth/password-reset-requests`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<PasswordResetRequestAcceptedResponse>(
+      'post',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        body: passwordResetRequestCreate,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        transferCache: localVarTransferCache,
+        reportProgress: reportProgress,
+      },
+    );
   }
 }

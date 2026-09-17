@@ -19,6 +19,10 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
       const appError = normalizeHttpError(error);
 
       if (isUnauthorizedApiResponse(error, request.url, config.apiBaseUrl)) {
+        if (session.requiresPasswordChange() && !isRestrictedSessionEndpoint(request.url)) {
+          if (router.url !== '/set-password') void router.navigate(['/set-password']);
+          return throwError(() => appError);
+        }
         session.endSession();
         const currentUrl = safeLocalReturnUrl(router.url);
         const isLoginRequest = request.url.endsWith('/auth/login');
@@ -33,6 +37,10 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
     }),
   );
 };
+
+function isRestrictedSessionEndpoint(url: string): boolean {
+  return url.endsWith('/auth/me') || url.endsWith('/auth/complete-password-change');
+}
 
 function isUnauthorizedApiResponse(
   error: unknown,

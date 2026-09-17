@@ -1,7 +1,7 @@
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, PositiveInt, SecretStr, field_validator
+from pydantic import Field, PositiveInt, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,10 +14,20 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     access_token_expire_minutes: PositiveInt = 30
+    password_change_token_expire_minutes: PositiveInt = 10
     cors_allowed_origins: list[str] = [
         "http://localhost:4200",
         "http://127.0.0.1:4200",
     ]
+
+    @model_validator(mode="after")
+    def validate_token_lifetimes(self) -> "Settings":
+        if (
+            self.password_change_token_expire_minutes
+            >= self.access_token_expire_minutes
+        ):
+            raise ValueError("Password-change tokens must expire before access tokens.")
+        return self
 
     @field_validator("cors_allowed_origins")
     @classmethod

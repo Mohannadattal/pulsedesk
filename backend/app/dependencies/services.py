@@ -12,18 +12,23 @@ from app.repositories.ticket import TicketRepository
 from app.repositories.ticket_comment import TicketCommentRepository
 from app.repositories.ticket_event import TicketEventRepository
 from app.repositories.user import UserRepository
+from app.repositories.password_reset_request import PasswordResetRequestRepository
 from app.services.auth import AuthenticationService
 from app.services.category import CategoryService
 from app.services.ticket import TicketService
 from app.services.ticket_comment import TicketCommentService
 from app.services.ticket_event import TicketEventRecorder, TicketEventService
 from app.services.user import UserService
+from app.services.password_reset_request import PasswordResetService
 
 
 access_token_manager = AccessTokenManager(
     secret=settings.jwt_secret.get_secret_value(),
     algorithm=settings.jwt_algorithm,
-    lifetime=timedelta(minutes=settings.access_token_expire_minutes),
+    access_lifetime=timedelta(minutes=settings.access_token_expire_minutes),
+    password_change_lifetime=timedelta(
+        minutes=settings.password_change_token_expire_minutes
+    ),
 )
 
 
@@ -43,9 +48,21 @@ def get_authentication_service(
     db: Annotated[Session, Depends(get_db)],
 ) -> AuthenticationService:
     return AuthenticationService(
+        db=db,
         user_repository=UserRepository(db),
         password_hasher=password_hasher,
         access_token_manager=access_token_manager,
+    )
+
+
+def get_password_reset_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> PasswordResetService:
+    return PasswordResetService(
+        db=db,
+        password_reset_repository=PasswordResetRequestRepository(db),
+        user_repository=UserRepository(db),
+        password_hasher=password_hasher,
     )
 
 

@@ -19,9 +19,7 @@ def is_mysql_duplicate_constraint(
         return False
 
     message = str(original_error_arguments[1])
-    constraint_pattern = (
-        rf"for key ['`](?:[^'`]+\.)?{re.escape(constraint_name)}['`]"
-    )
+    constraint_pattern = rf"for key ['`](?:[^'`]+\.)?{re.escape(constraint_name)}['`]"
     return re.search(constraint_pattern, message) is not None
 
 
@@ -35,3 +33,7 @@ class DuplicateCategoryNameError(Exception):
 
 class DuplicateTicketNumberError(Exception):
     """Raised when persistence rejects a duplicate ticket number."""
+
+
+class DuplicatePendingPasswordResetRequestError(Exception):
+    """Raised when a pending reset request already exists for the user."""

@@ -1,7 +1,10 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { catchError, Observable, switchMap, tap, throwError } from 'rxjs';
+import { catchError, Observable, tap, throwError } from 'rxjs';
 
+import { AuthSessionResponse } from '../../api/generated/model/authSessionResponse';
+import { CompletePasswordChangeRequest } from '../../api/generated/model/completePasswordChangeRequest';
 import { LoginRequest } from '../../api/generated/model/loginRequest';
+import { SessionType } from '../../api/generated/model/sessionType';
 import { UserResponse } from '../../api/generated/model/userResponse';
 import { normalizeHttpError } from '../http/app-error';
 import { AuthApi } from './auth-api';
@@ -9,6 +12,7 @@ import { TokenStorage } from './token-storage';
 
 export type AuthSessionState =
   | { readonly status: 'restoring' }
+  | { readonly status: 'password-change-required'; readonly user: UserResponse }
   | { readonly status: 'authenticated'; readonly user: UserResponse }
   | { readonly status: 'anonymous' };
 
@@ -23,9 +27,13 @@ export class AuthSessionStore {
   readonly status = computed(() => this.sessionState().status);
   readonly currentUser = computed(() => {
     const state = this.sessionState();
-    return state.status === 'authenticated' ? state.user : null;
+    return state.status === 'authenticated' || state.status === 'password-change-required'
+      ? state.user
+      : null;
   });
-  readonly isAuthenticated = computed(() => this.status() === 'authenticated');
+  readonly hasNormalSession = computed(() => this.status() === 'authenticated');
+  readonly requiresPasswordChange = computed(() => this.status() === 'password-change-required');
+  readonly isAuthenticated = this.hasNormalSession;
 
   restore(): Promise<void> {
     if (this.restoration) {
@@ -40,9 +48,9 @@ export class AuthSessionStore {
     }
 
     this.restoration = new Promise<void>((resolve) => {
-      this.authApi.currentUser().subscribe({
-        next: (user) => {
-          this.sessionState.set({ status: 'authenticated', user });
+      this.authApi.currentSession().subscribe({
+        next: (response) => {
+          this.setSessionState(response.session_type, response.user);
           resolve();
         },
         error: (error: unknown) => {
@@ -59,11 +67,9 @@ export class AuthSessionStore {
     return this.restoration;
   }
 
-  signIn(credentials: LoginRequest): Observable<UserResponse> {
+  signIn(credentials: LoginRequest): Observable<AuthSessionResponse> {
     return this.authApi.login(credentials).pipe(
-      tap((response) => this.tokenStorage.write(response.access_token)),
-      switchMap(() => this.authApi.currentUser()),
-      tap((user) => this.sessionState.set({ status: 'authenticated', user })),
+      tap((response) => this.acceptSession(response)),
       catchError((error: unknown) => {
         this.endSession();
         return throwError(() => normalizeHttpError(error));
@@ -71,8 +77,28 @@ export class AuthSessionStore {
     );
   }
 
+  completePasswordChange(request: CompletePasswordChangeRequest): Observable<AuthSessionResponse> {
+    return this.authApi.completePasswordChange(request).pipe(
+      tap((response) => this.acceptSession(response)),
+      catchError((error: unknown) => throwError(() => normalizeHttpError(error))),
+    );
+  }
+
   endSession(): void {
     this.tokenStorage.clear();
     this.sessionState.set({ status: 'anonymous' });
+  }
+
+  private acceptSession(response: AuthSessionResponse): void {
+    this.tokenStorage.write(response.access_token);
+    this.setSessionState(response.session_type, response.user);
+  }
+
+  private setSessionState(sessionType: SessionType, user: UserResponse): void {
+    this.sessionState.set(
+      sessionType === SessionType.PASSWORD_CHANGE_REQUIRED
+        ? { status: 'password-change-required', user }
+        : { status: 'authenticated', user },
+    );
   }
 }

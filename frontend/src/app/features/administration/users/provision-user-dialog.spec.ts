@@ -61,6 +61,8 @@ describe('ProvisionUserDialog', () => {
       UserRole.AGENT,
       UserRole.ADMIN,
     ]);
+    expect(fixture.nativeElement.textContent).toContain('temporary password');
+    expect(fixture.nativeElement.textContent).toContain('replace it on first sign-in');
   });
 
   it('prevents duplicate submission and clears password state after success', () => {
@@ -107,8 +109,8 @@ describe('ProvisionUserDialog', () => {
     expect(text).toContain('Email is required.');
     expect(text).toContain('First name is required.');
     expect(text).toContain('Last name is required.');
-    expect(text).toContain('Password is required.');
-    expect(text).toContain('Password confirmation is required.');
+    expect(text).toContain('Temporary password is required.');
+    expect(text).toContain('Temporary password confirmation is required.');
 
     fixture.componentInstance['form'].controls.email.setValue('not-an-email');
     fixture.detectChanges();

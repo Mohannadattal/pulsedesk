@@ -9,11 +9,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const config = inject(PULSE_DESK_CONFIG);
   const token = inject(TokenStorage).read();
 
-  if (
-    !token ||
-    !isPulseDeskApiRequest(request.url, config) ||
-    request.url.endsWith('/auth/login')
-  ) {
+  if (!token || !isPulseDeskApiRequest(request.url, config) || isPublicAuthRequest(request.url)) {
     return next(request);
   }
 
@@ -23,3 +19,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     }),
   );
 };
+
+function isPublicAuthRequest(url: string): boolean {
+  return url.endsWith('/auth/login') || url.endsWith('/auth/password-reset-requests');
+}

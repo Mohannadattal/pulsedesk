@@ -6,6 +6,8 @@ import { CategoriesApi } from '../../../api/generated/api/categories.service';
 import { UsersApi } from '../../../api/generated/api/users.service';
 import { CategoryCreate } from '../../../api/generated/model/categoryCreate';
 import { CategoryUpdate } from '../../../api/generated/model/categoryUpdate';
+import { PasswordResetRequestResponse } from '../../../api/generated/model/passwordResetRequestResponse';
+import { PasswordResetRequestStatus } from '../../../api/generated/model/passwordResetRequestStatus';
 import { UserProvisionRequest } from '../../../api/generated/model/userProvisionRequest';
 import { UserResponse } from '../../../api/generated/model/userResponse';
 import { AdminUserFilters } from '../domain/admin-user-filters';
@@ -36,6 +38,27 @@ export interface AdminCategory {
   readonly isActive: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+}
+
+export interface AdminPasswordResetRequest {
+  readonly id: number;
+  readonly requestedAt: Date;
+  readonly user: {
+    readonly id: number;
+    readonly email: string;
+    readonly firstName: string;
+    readonly lastName: string;
+    readonly role: UserResponse['role'];
+    readonly isActive: boolean;
+  };
+}
+
+export interface AdminPasswordResetPage {
+  readonly items: readonly AdminPasswordResetRequest[];
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+  readonly totalPages: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -82,6 +105,46 @@ export class AdministrationDataAccess {
       .pipe(map(mapUser));
   }
 
+  listPendingPasswordResets(page: number, pageSize: number): Observable<AdminPasswordResetPage> {
+    return this.administrationApi
+      .listPasswordResetRequests(
+        PasswordResetRequestStatus.PENDING,
+        page,
+        pageSize,
+        'body',
+        false,
+        { transferCache: false },
+      )
+      .pipe(
+        map((response) => ({
+          items: response.items.map(mapPasswordResetRequest),
+          page: response.page,
+          pageSize: response.page_size,
+          total: response.total,
+          totalPages: response.total_pages,
+        })),
+      );
+  }
+
+  resetUserPassword(
+    requestId: number,
+    temporaryPassword: string,
+    confirmation: string,
+  ): Observable<AdminPasswordResetRequest> {
+    return this.administrationApi
+      .resetUserPassword(
+        requestId,
+        {
+          temporary_password: temporaryPassword,
+          confirm_temporary_password: confirmation,
+        },
+        'body',
+        false,
+        { transferCache: false },
+      )
+      .pipe(map(mapPasswordResetRequest));
+  }
+
   listCategories(includeInactive: boolean): Observable<readonly AdminCategory[]> {
     return this.categoriesApi
       .listCategories(includeInactive, 'body', false, { transferCache: false })
@@ -99,6 +162,21 @@ export class AdministrationDataAccess {
       .updateCategory(categoryId, request, 'body', false, { transferCache: false })
       .pipe(map(mapCategory));
   }
+}
+
+function mapPasswordResetRequest(request: PasswordResetRequestResponse): AdminPasswordResetRequest {
+  return {
+    id: request.id,
+    requestedAt: new Date(request.requested_at),
+    user: {
+      id: request.user.id,
+      email: request.user.email,
+      firstName: request.user.first_name,
+      lastName: request.user.last_name,
+      role: request.user.role,
+      isActive: request.user.is_active,
+    },
+  };
 }
 
 function mapUser(user: UserResponse): AdminUser {

@@ -1,7 +1,7 @@
 <h2 mat-dialog-title>Provision user</h2>
 <mat-dialog-content>
   <p class="dialog-intro">
-    Create an active account with an initial password chosen by the administrator.
+    Create an active account with a temporary password. The user must replace it on first sign-in.
   </p>
   <form id="provision-user-form" [formGroup]="form" (ngSubmit)="submit()">
     <mat-form-field appearance="outline">
@@ -64,7 +64,7 @@
 
     <div class="name-fields">
       <mat-form-field appearance="outline">
-        <mat-label>Password</mat-label>
+        <mat-label>Temporary password</mat-label>
         <input
           matInput
           type="password"
@@ -74,7 +74,7 @@
           maxlength="128"
         />
         @if (form.controls.password.hasError('required')) {
-          <mat-error>Password is required.</mat-error>
+          <mat-error>Temporary password is required.</mat-error>
         } @else if (form.controls.password.hasError('minlength')) {
           <mat-error>Use at least 8 characters.</mat-error>
         } @else if (form.controls.password.hasError('maxlength')) {
@@ -84,7 +84,7 @@
         }
       </mat-form-field>
       <mat-form-field appearance="outline">
-        <mat-label>Confirm password</mat-label>
+        <mat-label>Confirm temporary password</mat-label>
         <input
           matInput
           type="password"
@@ -92,7 +92,7 @@
           autocomplete="new-password"
         />
         @if (form.controls.passwordConfirmation.hasError('required')) {
-          <mat-error>Password confirmation is required.</mat-error>
+          <mat-error>Temporary password confirmation is required.</mat-error>
         } @else if (form.controls.passwordConfirmation.hasError('passwordMismatch')) {
           <mat-error>Passwords must match.</mat-error>
         }

@@ -44,10 +44,34 @@ describe('HTTP interceptors', () => {
       apiRequest.flush({});
       externalRequest.flush({});
     });
+
+    it.each(['/auth/login', '/auth/password-reset-requests'])(
+      'keeps public endpoint %s free of bearer credentials',
+      (path) => {
+        const http = TestBed.inject(HttpClient);
+        http.post(`${config.apiBaseUrl}${path}`, {}).subscribe();
+
+        const request = httpTesting.expectOne(`${config.apiBaseUrl}${path}`);
+        expect(request.request.headers.has('Authorization')).toBe(false);
+        request.flush({});
+      },
+    );
+
+    it.each(['/auth/me', '/auth/complete-password-change'])(
+      'sends the stored token to lifecycle endpoint %s',
+      (path) => {
+        const http = TestBed.inject(HttpClient);
+        http.post(`${config.apiBaseUrl}${path}`, {}).subscribe();
+
+        const request = httpTesting.expectOne(`${config.apiBaseUrl}${path}`);
+        expect(request.request.headers.get('Authorization')).toBe('Bearer opaque-token');
+        request.flush({});
+      },
+    );
   });
 
   describe('errorInterceptor', () => {
-    const session = { endSession: vi.fn() };
+    const session = { endSession: vi.fn(), requiresPasswordChange: vi.fn() };
     const router = {
       url: '/tickets?status=OPEN',
       navigate: vi.fn().mockResolvedValue(true),
@@ -56,6 +80,7 @@ describe('HTTP interceptors', () => {
 
     beforeEach(() => {
       vi.clearAllMocks();
+      session.requiresPasswordChange.mockReturnValue(false);
       TestBed.configureTestingModule({
         providers: [
           provideHttpClient(withInterceptors([errorInterceptor])),
@@ -99,6 +124,43 @@ describe('HTTP interceptors', () => {
       expect(session.endSession).toHaveBeenCalledOnce();
       expect(router.navigate).toHaveBeenCalledWith(['/sign-in'], {
         queryParams: { returnUrl: '/tickets?status=OPEN' },
+      });
+    });
+
+    it('preserves a legitimate restricted session when a normal business call returns 401', async () => {
+      session.requiresPasswordChange.mockReturnValue(true);
+      const http = TestBed.inject(HttpClient);
+      const response = firstValueFrom(http.get(`${config.apiBaseUrl}/tickets`));
+      httpTesting
+        .expectOne(`${config.apiBaseUrl}/tickets`)
+        .flush(
+          { code: 'AUTHENTICATION_FAILED', detail: 'Could not validate credentials.' },
+          { status: 401, statusText: 'Unauthorized' },
+        );
+
+      await expect(response).rejects.toMatchObject({ kind: 'authentication', status: 401 });
+      expect(session.endSession).not.toHaveBeenCalled();
+      expect(router.navigate).toHaveBeenCalledWith(['/set-password']);
+    });
+
+    it('clears a stale restricted token when password completion returns 401', async () => {
+      session.requiresPasswordChange.mockReturnValue(true);
+      router.url = '/set-password';
+      const http = TestBed.inject(HttpClient);
+      const response = firstValueFrom(
+        http.post(`${config.apiBaseUrl}/auth/complete-password-change`, {}),
+      );
+      httpTesting
+        .expectOne(`${config.apiBaseUrl}/auth/complete-password-change`)
+        .flush(
+          { code: 'AUTHENTICATION_FAILED', detail: 'Could not validate credentials.' },
+          { status: 401, statusText: 'Unauthorized' },
+        );
+
+      await expect(response).rejects.toMatchObject({ kind: 'authentication', status: 401 });
+      expect(session.endSession).toHaveBeenCalledOnce();
+      expect(router.navigate).toHaveBeenCalledWith(['/sign-in'], {
+        queryParams: { returnUrl: '/set-password' },
       });
     });
   });

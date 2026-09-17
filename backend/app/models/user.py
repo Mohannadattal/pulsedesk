@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, CheckConstraint, String
+from sqlalchemy import Boolean, CheckConstraint, String, text
 from sqlalchemy.dialects.mysql import BIGINT, DATETIME
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -61,6 +61,20 @@ class User(Base):
         nullable=False,
         default=True,
         server_default="1",
+    )
+
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("0"),
+    )
+
+    auth_version: Mapped[int] = mapped_column(
+        BIGINT(unsigned=True),
+        nullable=False,
+        default=0,
+        server_default=text("0"),
     )
 
     created_at: Mapped[datetime] = mapped_column(

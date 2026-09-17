@@ -12,11 +12,13 @@ export const authGuard: CanActivateFn = (_route, state) => {
 
   return from(session.restore()).pipe(
     map(() =>
-      session.isAuthenticated()
+      session.hasNormalSession()
         ? true
-        : router.createUrlTree(['/sign-in'], {
-            queryParams: { returnUrl: safeLocalReturnUrl(state.url) },
-          }),
+        : session.requiresPasswordChange()
+          ? router.createUrlTree(['/set-password'])
+          : router.createUrlTree(['/sign-in'], {
+              queryParams: { returnUrl: safeLocalReturnUrl(state.url) },
+            }),
     ),
   );
 };
@@ -26,7 +28,26 @@ export const anonymousOnlyGuard: CanActivateFn = () => {
   const router = inject(Router);
 
   return from(session.restore()).pipe(
-    map(() => (session.isAuthenticated() ? router.createUrlTree(['/tickets']) : true)),
+    map(() =>
+      session.hasNormalSession()
+        ? router.createUrlTree(['/tickets'])
+        : session.requiresPasswordChange()
+          ? router.createUrlTree(['/set-password'])
+          : true,
+    ),
+  );
+};
+
+export const passwordChangeGuard: CanActivateFn = () => {
+  const session = inject(AuthSessionStore);
+  const router = inject(Router);
+
+  return from(session.restore()).pipe(
+    map(() =>
+      session.requiresPasswordChange()
+        ? true
+        : router.createUrlTree([session.hasNormalSession() ? '/tickets' : '/sign-in']),
+    ),
   );
 };
 

@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { anonymousOnlyGuard, authGuard } from './platform/auth/auth.guards';
+import { anonymousOnlyGuard, authGuard, passwordChangeGuard } from './platform/auth/auth.guards';
 
 export const routes: Routes = [
   {
@@ -8,6 +8,22 @@ export const routes: Routes = [
     title: 'Sign in | PulseDesk',
     canActivate: [anonymousOnlyGuard],
     loadComponent: () => import('./features/sign-in/sign-in.page').then((page) => page.SignInPage),
+  },
+  {
+    path: 'forgot-password',
+    title: 'Forgot password | PulseDesk',
+    canActivate: [anonymousOnlyGuard],
+    loadComponent: () =>
+      import('./features/forgot-password/forgot-password.page').then(
+        (page) => page.ForgotPasswordPage,
+      ),
+  },
+  {
+    path: 'set-password',
+    title: 'Set password | PulseDesk',
+    canActivate: [passwordChangeGuard],
+    loadComponent: () =>
+      import('./features/set-password/set-password.page').then((page) => page.SetPasswordPage),
   },
   {
     path: '',

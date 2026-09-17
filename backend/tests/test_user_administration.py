@@ -134,6 +134,8 @@ class UserAdministrationServiceTests(unittest.TestCase):
                     )
                 )
                 self.assertTrue(created.is_active)
+                self.assertTrue(created.must_change_password)
+                self.assertEqual(created.auth_version, 0)
                 self.assertNotEqual(created.password_hash, "secure-passphrase")
                 self.assertTrue(
                     password_hasher.verify(
@@ -188,6 +190,7 @@ class UserAdministrationServiceTests(unittest.TestCase):
                 self._get(db, 1),
             )
             self.assertFalse(deactivated.is_active)
+            self.assertEqual(deactivated.auth_version, 1)
             self.assertEqual(deactivated.updated_at, changed_time)
 
         with self.session_factory() as db:
@@ -198,6 +201,7 @@ class UserAdministrationServiceTests(unittest.TestCase):
                 self._get(db, 1),
             )
             self.assertTrue(reactivated.is_active)
+            self.assertEqual(reactivated.auth_version, 1)
             with self.assertRaises(UserNotFoundError):
                 service.update_activation(
                     999,
@@ -225,11 +229,12 @@ class UserAdministrationServiceTests(unittest.TestCase):
         token = access_token_manager.create(2)
         with self.session_factory() as db:
             authentication = AuthenticationService(
+                db,
                 UserRepository(db),
                 password_hasher,
                 access_token_manager,
             )
-            self.assertEqual(authentication.authenticate_access_token(token).id, 2)
+            self.assertEqual(authentication.authenticate_session(token).user.id, 2)
             self._service(db).update_activation(
                 2,
                 UserActivationUpdate(is_active=False),
@@ -237,12 +242,13 @@ class UserAdministrationServiceTests(unittest.TestCase):
             )
         with self.session_factory() as db:
             authentication = AuthenticationService(
+                db,
                 UserRepository(db),
                 password_hasher,
                 access_token_manager,
             )
             with self.assertRaises(AuthenticationError):
-                authentication.authenticate_access_token(token)
+                authentication.authenticate_session(token)
 
     def test_agent_deactivation_preserves_existing_assignment_and_blocks_new_assignment(
         self,

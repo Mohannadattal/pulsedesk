@@ -55,6 +55,8 @@
             }
           </mat-form-field>
 
+          <a class="forgot-link" routerLink="/forgot-password">Forgot password?</a>
+
           @if (serverError()) {
             <div class="form-error" role="alert">{{ serverError() }}</div>
           }

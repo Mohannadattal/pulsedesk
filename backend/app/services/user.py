@@ -35,7 +35,7 @@ class UserService:
         self.password_hasher = password_hasher
 
     def create_user(self, data: UserProvisionRequest) -> User:
-        return self._create_and_commit(data)
+        return self._create_and_commit(data, must_change_password=True)
 
     def list_users(
         self,
@@ -133,6 +133,8 @@ class UserService:
                 return target
 
             target.is_active = data.is_active
+            if not data.is_active:
+                target.auth_version += 1
             target.updated_at = utc_now_naive()
             target = self.user_repository.save(target)
             self.db.commit()
@@ -156,9 +158,17 @@ class UserService:
             **data.model_dump(),
             role=UserRole.ADMIN,
         )
-        return self._create_and_commit(provision_request)
+        return self._create_and_commit(
+            provision_request,
+            must_change_password=False,
+        )
 
-    def _create_and_commit(self, data: UserProvisionRequest) -> User:
+    def _create_and_commit(
+        self,
+        data: UserProvisionRequest,
+        *,
+        must_change_password: bool,
+    ) -> User:
         try:
             existing_user = self.user_repository.get_by_email(data.email)
 
@@ -168,10 +178,14 @@ class UserService:
             now = utc_now_naive()
             user = User(
                 email=data.email,
-                password_hash=self.password_hasher.hash(data.password),
+                password_hash=self.password_hasher.hash(
+                    data.password.get_secret_value()
+                ),
                 first_name=data.first_name,
                 last_name=data.last_name,
                 role=data.role,
+                must_change_password=must_change_password,
+                auth_version=0,
                 created_at=now,
                 updated_at=now,
             )

@@ -1,23 +1,31 @@
 {
   "components": {
     "schemas": {
-      "AccessTokenResponse": {
+      "AdminResetPasswordRequest": {
+        "additionalProperties": false,
         "properties": {
-          "access_token": {
-            "title": "Access Token",
-            "type": "string"
+          "confirm_temporary_password": {
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Confirm Temporary Password",
+            "type": "string",
+            "writeOnly": true
           },
-          "token_type": {
-            "const": "bearer",
-            "default": "bearer",
-            "title": "Token Type",
-            "type": "string"
+          "temporary_password": {
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Temporary Password",
+            "type": "string",
+            "writeOnly": true
           }
         },
         "required": [
-          "access_token"
+          "temporary_password",
+          "confirm_temporary_password"
         ],
-        "title": "AccessTokenResponse",
+        "title": "AdminResetPasswordRequest",
         "type": "object"
       },
       "AdminUserDirectoryListResponse": {
@@ -54,6 +62,49 @@
           "total_pages"
         ],
         "title": "AdminUserDirectoryListResponse",
+        "type": "object"
+      },
+      "AuthSessionResponse": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "session_type": {
+            "$ref": "#/components/schemas/SessionType"
+          },
+          "token_type": {
+            "const": "bearer",
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "required": [
+          "access_token",
+          "session_type",
+          "user"
+        ],
+        "title": "AuthSessionResponse",
+        "type": "object"
+      },
+      "AuthSessionStateResponse": {
+        "properties": {
+          "session_type": {
+            "$ref": "#/components/schemas/SessionType"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "required": [
+          "session_type",
+          "user"
+        ],
+        "title": "AuthSessionStateResponse",
         "type": "object"
       },
       "CategoryCreate": {
@@ -200,6 +251,33 @@
         "title": "CommentVisibility",
         "type": "string"
       },
+      "CompletePasswordChangeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm_new_password": {
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Confirm New Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "new_password": {
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "New Password",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "new_password",
+          "confirm_new_password"
+        ],
+        "title": "CompletePasswordChangeRequest",
+        "type": "object"
+      },
       "ErrorCode": {
         "enum": [
           "AUTHENTICATION_FAILED",
@@ -208,6 +286,11 @@
           "USER_ALREADY_EXISTS",
           "USER_SELF_DEACTIVATION_FORBIDDEN",
           "LAST_ACTIVE_ADMIN_REQUIRED",
+          "PASSWORD_CONFIRMATION_MISMATCH",
+          "PASSWORD_REUSE_NOT_ALLOWED",
+          "PASSWORD_RESET_REQUEST_NOT_FOUND",
+          "PASSWORD_RESET_REQUEST_RESOLVED",
+          "PASSWORD_RESET_TARGET_INACTIVE",
           "CATEGORY_NOT_FOUND",
           "CATEGORY_ALREADY_EXISTS",
           "CATEGORY_INACTIVE",
@@ -253,10 +336,12 @@
             "type": "string"
           },
           "password": {
+            "format": "password",
             "maxLength": 128,
             "minLength": 1,
             "title": "Password",
-            "type": "string"
+            "type": "string",
+            "writeOnly": true
           }
         },
         "required": [
@@ -265,6 +350,174 @@
         ],
         "title": "LoginRequest",
         "type": "object"
+      },
+      "PasswordResetRequestAcceptedResponse": {
+        "properties": {
+          "detail": {
+            "const": "If an account exists for this email, a password reset request has been submitted.",
+            "default": "If an account exists for this email, a password reset request has been submitted.",
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "title": "PasswordResetRequestAcceptedResponse",
+        "type": "object"
+      },
+      "PasswordResetRequestCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "PasswordResetRequestCreate",
+        "type": "object"
+      },
+      "PasswordResetRequestListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PasswordResetRequestResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PasswordResetRequestListResponse",
+        "type": "object"
+      },
+      "PasswordResetRequestResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "title": "Requested At",
+            "type": "string"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By User Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PasswordResetRequestStatus"
+          },
+          "user": {
+            "$ref": "#/components/schemas/PasswordResetUserResponse"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "requested_at",
+          "resolved_at",
+          "resolved_by_user_id",
+          "user"
+        ],
+        "title": "PasswordResetRequestResponse",
+        "type": "object"
+      },
+      "PasswordResetRequestStatus": {
+        "enum": [
+          "PENDING",
+          "RESOLVED"
+        ],
+        "title": "PasswordResetRequestStatus",
+        "type": "string"
+      },
+      "PasswordResetUserResponse": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "last_name": {
+            "title": "Last Name",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "first_name",
+          "last_name",
+          "role",
+          "is_active"
+        ],
+        "title": "PasswordResetUserResponse",
+        "type": "object"
+      },
+      "SessionType": {
+        "enum": [
+          "NORMAL",
+          "PASSWORD_CHANGE_REQUIRED"
+        ],
+        "title": "SessionType",
+        "type": "string"
       },
       "TicketAssignmentUpdate": {
         "additionalProperties": false,
@@ -971,10 +1224,12 @@
             "type": "string"
           },
           "password": {
+            "format": "password",
             "maxLength": 128,
             "minLength": 8,
             "title": "Password",
-            "type": "string"
+            "type": "string",
+            "writeOnly": true
           },
           "role": {
             "$ref": "#/components/schemas/UserRole"
@@ -1151,6 +1406,234 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/password-reset-requests": {
+      "get": {
+        "operationId": "list_password_reset_requests",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PasswordResetRequestStatus",
+              "default": "PENDING"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetRequestListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Administrator access is required."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "A temporary service failure occurred."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Password Reset Requests",
+        "tags": [
+          "Administration"
+        ]
+      }
+    },
+    "/api/v1/admin/password-reset-requests/{request_id}/reset-password": {
+      "post": {
+        "operationId": "reset_user_password",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Request Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetRequestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Administrator access is required."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Password reset request was not found."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "The password reset request cannot be resolved."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "A temporary service failure occurred."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reset User Password",
+        "tags": [
+          "Administration"
+        ]
+      }
+    },
     "/api/v1/admin/users": {
       "get": {
         "operationId": "list_admin_users",
@@ -1278,6 +1761,82 @@
         ]
       }
     },
+    "/api/v1/auth/complete-password-change": {
+      "post": {
+        "operationId": "complete_password_change",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletePasswordChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "A valid password-change session is required."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "The replacement password is invalid."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "A temporary service failure occurred."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Complete Password Change",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "login",
@@ -1296,7 +1855,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccessTokenResponse"
+                  "$ref": "#/components/schemas/AuthSessionResponse"
                 }
               }
             },
@@ -1357,7 +1916,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/AuthSessionStateResponse"
                 }
               }
             },
@@ -1410,6 +1969,67 @@
           }
         ],
         "summary": "Read Current User",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/password-reset-requests": {
+      "post": {
+        "operationId": "request_password_reset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetRequestAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "A temporary service failure occurred."
+          }
+        },
+        "summary": "Request Password Reset",
         "tags": [
           "Authentication"
         ]

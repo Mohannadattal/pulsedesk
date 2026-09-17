@@ -23,6 +23,14 @@ export const ADMINISTRATION_ROUTES: Routes = [
         loadComponent: () =>
           import('./categories/category-list.page').then((page) => page.CategoryListPage),
       },
+      {
+        path: 'password-resets',
+        title: 'Password resets | PulseDesk',
+        loadComponent: () =>
+          import('./password-resets/password-reset-list.page').then(
+            (page) => page.PasswordResetListPage,
+          ),
+      },
       { path: '**', redirectTo: 'users' },
     ],
   },

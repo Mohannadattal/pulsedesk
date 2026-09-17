@@ -23,9 +23,17 @@ import { CustomHttpParameterCodec } from '../encoder';
 import { Observable } from 'rxjs';
 
 // @ts-ignore
+import { AdminResetPasswordRequest } from '../model/adminResetPasswordRequest';
+// @ts-ignore
 import { AdminUserDirectoryListResponse } from '../model/adminUserDirectoryListResponse';
 // @ts-ignore
 import { ErrorResponse } from '../model/errorResponse';
+// @ts-ignore
+import { PasswordResetRequestListResponse } from '../model/passwordResetRequestListResponse';
+// @ts-ignore
+import { PasswordResetRequestResponse } from '../model/passwordResetRequestResponse';
+// @ts-ignore
+import { PasswordResetRequestStatus } from '../model/passwordResetRequestStatus';
 // @ts-ignore
 import { UserRole } from '../model/userRole';
 // @ts-ignore
@@ -163,6 +171,239 @@ export class AdministrationApi extends BaseService implements AdministrationApiI
       {
         context: localVarHttpContext,
         params: localVarQueryParameters,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        transferCache: localVarTransferCache,
+        reportProgress: reportProgress,
+      },
+    );
+  }
+
+  /**
+   * List Password Reset Requests
+   * @param status
+   * @param page
+   * @param pageSize
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public listPasswordResetRequests(
+    status?: PasswordResetRequestStatus,
+    page?: number,
+    pageSize?: number,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<PasswordResetRequestListResponse>;
+  public listPasswordResetRequests(
+    status?: PasswordResetRequestStatus,
+    page?: number,
+    pageSize?: number,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpResponse<PasswordResetRequestListResponse>>;
+  public listPasswordResetRequests(
+    status?: PasswordResetRequestStatus,
+    page?: number,
+    pageSize?: number,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpEvent<PasswordResetRequestListResponse>>;
+  public listPasswordResetRequests(
+    status?: PasswordResetRequestStatus,
+    page?: number,
+    pageSize?: number,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<any> {
+    let localVarQueryParameters = new HttpParams({ encoder: this.encoder });
+    localVarQueryParameters = this.addToHttpParams(localVarQueryParameters, <any>status, 'status');
+    localVarQueryParameters = this.addToHttpParams(localVarQueryParameters, <any>page, 'page');
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      <any>pageSize,
+      'page_size',
+    );
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (HTTPBearer) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'HTTPBearer',
+      'Authorization',
+      localVarHeaders,
+      'Bearer ',
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+    }
+
+    const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/admin/password-reset-requests`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<PasswordResetRequestListResponse>(
+      'get',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        params: localVarQueryParameters,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        transferCache: localVarTransferCache,
+        reportProgress: reportProgress,
+      },
+    );
+  }
+
+  /**
+   * Reset User Password
+   * @param requestId
+   * @param adminResetPasswordRequest
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public resetUserPassword(
+    requestId: number,
+    adminResetPasswordRequest: AdminResetPasswordRequest,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<PasswordResetRequestResponse>;
+  public resetUserPassword(
+    requestId: number,
+    adminResetPasswordRequest: AdminResetPasswordRequest,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpResponse<PasswordResetRequestResponse>>;
+  public resetUserPassword(
+    requestId: number,
+    adminResetPasswordRequest: AdminResetPasswordRequest,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpEvent<PasswordResetRequestResponse>>;
+  public resetUserPassword(
+    requestId: number,
+    adminResetPasswordRequest: AdminResetPasswordRequest,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<any> {
+    if (requestId === null || requestId === undefined) {
+      throw new Error(
+        'Required parameter requestId was null or undefined when calling resetUserPassword.',
+      );
+    }
+    if (adminResetPasswordRequest === null || adminResetPasswordRequest === undefined) {
+      throw new Error(
+        'Required parameter adminResetPasswordRequest was null or undefined when calling resetUserPassword.',
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (HTTPBearer) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'HTTPBearer',
+      'Authorization',
+      localVarHeaders,
+      'Bearer ',
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+    }
+
+    const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    // to determine the Content-Type header
+    const consumes: string[] = ['application/json'];
+    const httpContentTypeSelected: string | undefined =
+      this.configuration.selectHeaderContentType(consumes);
+    if (httpContentTypeSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+    }
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/admin/password-reset-requests/${this.configuration.encodeParam({ name: 'requestId', value: requestId, in: 'path', style: 'simple', explode: false, dataType: 'number', dataFormat: undefined })}/reset-password`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<PasswordResetRequestResponse>(
+      'post',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        body: adminResetPasswordRequest,
         responseType: <any>responseType_,
         ...(withCredentials ? { withCredentials } : {}),
         headers: localVarHeaders,

@@ -11,8 +11,12 @@ import { HttpHeaders } from '@angular/common/http';
 
 import { Observable } from 'rxjs';
 
+import { AdminResetPasswordRequest } from '../model/models';
 import { AdminUserDirectoryListResponse } from '../model/models';
 import { ErrorResponse } from '../model/models';
+import { PasswordResetRequestListResponse } from '../model/models';
+import { PasswordResetRequestResponse } from '../model/models';
+import { PasswordResetRequestStatus } from '../model/models';
 import { UserRole } from '../model/models';
 import { ValidationErrorResponse } from '../model/models';
 
@@ -37,4 +41,30 @@ export interface AdministrationApiInterface {
     pageSize?: number,
     extraHttpRequestParams?: any,
   ): Observable<AdminUserDirectoryListResponse>;
+
+  /**
+   * List Password Reset Requests
+   *
+   * @param status
+   * @param page
+   * @param pageSize
+   */
+  listPasswordResetRequests(
+    status?: PasswordResetRequestStatus,
+    page?: number,
+    pageSize?: number,
+    extraHttpRequestParams?: any,
+  ): Observable<PasswordResetRequestListResponse>;
+
+  /**
+   * Reset User Password
+   *
+   * @param requestId
+   * @param adminResetPasswordRequest
+   */
+  resetUserPassword(
+    requestId: number,
+    adminResetPasswordRequest: AdminResetPasswordRequest,
+    extraHttpRequestParams?: any,
+  ): Observable<PasswordResetRequestResponse>;
 }

@@ -11,10 +11,13 @@ import { HttpHeaders } from '@angular/common/http';
 
 import { Observable } from 'rxjs';
 
-import { AccessTokenResponse } from '../model/models';
+import { AuthSessionResponse } from '../model/models';
+import { AuthSessionStateResponse } from '../model/models';
+import { CompletePasswordChangeRequest } from '../model/models';
 import { ErrorResponse } from '../model/models';
 import { LoginRequest } from '../model/models';
-import { UserResponse } from '../model/models';
+import { PasswordResetRequestAcceptedResponse } from '../model/models';
+import { PasswordResetRequestCreate } from '../model/models';
 import { ValidationErrorResponse } from '../model/models';
 
 import { Configuration } from '../configuration';
@@ -24,15 +27,35 @@ export interface AuthenticationApiInterface {
   configuration: Configuration;
 
   /**
+   * Complete Password Change
+   *
+   * @param completePasswordChangeRequest
+   */
+  completePasswordChange(
+    completePasswordChangeRequest: CompletePasswordChangeRequest,
+    extraHttpRequestParams?: any,
+  ): Observable<AuthSessionResponse>;
+
+  /**
    * Read Current User
    *
    */
-  getCurrentUser(extraHttpRequestParams?: any): Observable<UserResponse>;
+  getCurrentUser(extraHttpRequestParams?: any): Observable<AuthSessionStateResponse>;
 
   /**
    * Login
    *
    * @param loginRequest
    */
-  login(loginRequest: LoginRequest, extraHttpRequestParams?: any): Observable<AccessTokenResponse>;
+  login(loginRequest: LoginRequest, extraHttpRequestParams?: any): Observable<AuthSessionResponse>;
+
+  /**
+   * Request Password Reset
+   *
+   * @param passwordResetRequestCreate
+   */
+  requestPasswordReset(
+    passwordResetRequestCreate: PasswordResetRequestCreate,
+    extraHttpRequestParams?: any,
+  ): Observable<PasswordResetRequestAcceptedResponse>;
 }

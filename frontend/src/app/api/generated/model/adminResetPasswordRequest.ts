@@ -8,10 +8,7 @@
  * Do not edit the class manually.
  */
 
-export interface AccessTokenResponse {
-  access_token: string;
-  token_type?: AccessTokenResponseTokenTypeEnum;
-}
-export enum AccessTokenResponseTokenTypeEnum {
-  bearer = 'bearer',
+export interface AdminResetPasswordRequest {
+  confirm_temporary_password: string;
+  temporary_password: string;
 }

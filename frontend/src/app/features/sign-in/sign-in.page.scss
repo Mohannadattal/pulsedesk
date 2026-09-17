@@ -118,6 +118,19 @@ mat-form-field {
   width: 100%;
 }
 
+.forgot-link {
+  justify-self: end;
+  margin-top: calc(var(--pd-space-3) * -1);
+  color: var(--pd-color-action-strong);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
 form > button {
   width: 100%;
   min-height: 2.75rem;

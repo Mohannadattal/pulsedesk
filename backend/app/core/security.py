@@ -1,4 +1,6 @@
 from datetime import UTC, datetime, timedelta
+from dataclasses import dataclass
+from enum import StrEnum
 
 import jwt
 from jwt.exceptions import InvalidTokenError
@@ -27,32 +29,61 @@ class InvalidAccessTokenError(Exception):
     """Raised when an access token cannot be securely validated."""
 
 
+class TokenPurpose(StrEnum):
+    ACCESS = "ACCESS"
+    PASSWORD_CHANGE = "PASSWORD_CHANGE"
+
+
+@dataclass(frozen=True)
+class AccessTokenClaims:
+    user_id: int
+    purpose: TokenPurpose
+    auth_version: int
+
+
 class AccessTokenManager:
     def __init__(
         self,
         secret: str,
         algorithm: str,
-        lifetime: timedelta,
+        access_lifetime: timedelta,
+        password_change_lifetime: timedelta,
     ) -> None:
         self._secret = secret
         self._algorithm = algorithm
-        self._lifetime = lifetime
+        self._lifetimes = {
+            TokenPurpose.ACCESS: access_lifetime,
+            TokenPurpose.PASSWORD_CHANGE: password_change_lifetime,
+        }
 
-    def create(self, user_id: int) -> str:
-        expires_at = datetime.now(UTC) + self._lifetime
+    def create(
+        self,
+        user_id: int,
+        *,
+        purpose: TokenPurpose = TokenPurpose.ACCESS,
+        auth_version: int = 0,
+    ) -> str:
+        expires_at = datetime.now(UTC) + self._lifetimes[purpose]
         return jwt.encode(
-            {"sub": str(user_id), "exp": expires_at},
+            {
+                "sub": str(user_id),
+                "exp": expires_at,
+                "purpose": purpose.value,
+                "auth_version": auth_version,
+            },
             self._secret,
             algorithm=self._algorithm,
         )
 
-    def get_subject(self, token: str) -> int:
+    def decode(self, token: str) -> AccessTokenClaims:
         try:
             payload = jwt.decode(
                 token,
                 self._secret,
                 algorithms=[self._algorithm],
-                options={"require": ["sub", "exp"]},
+                options={
+                    "require": ["sub", "exp", "purpose", "auth_version"],
+                },
             )
             subject = payload["sub"]
             if not isinstance(subject, str) or not subject.isdecimal():
@@ -61,7 +92,20 @@ class AccessTokenManager:
             user_id = int(subject)
             if user_id < 1:
                 raise InvalidAccessTokenError
-            return user_id
+
+            purpose = TokenPurpose(payload["purpose"])
+            auth_version = payload["auth_version"]
+            if (
+                not isinstance(auth_version, int)
+                or isinstance(auth_version, bool)
+                or auth_version < 0
+            ):
+                raise InvalidAccessTokenError
+            return AccessTokenClaims(
+                user_id=user_id,
+                purpose=purpose,
+                auth_version=auth_version,
+            )
         except (InvalidTokenError, KeyError, ValueError, TypeError) as error:
             raise InvalidAccessTokenError from error
 

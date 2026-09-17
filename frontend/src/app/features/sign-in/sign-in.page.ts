@@ -5,7 +5,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, take } from 'rxjs';
 
 import { AuthSessionStore } from '../../platform/auth/auth-session.store';
@@ -21,6 +21,7 @@ import { AppError, normalizeHttpError } from '../../platform/http/app-error';
     MatInputModule,
     MatProgressSpinnerModule,
     ReactiveFormsModule,
+    RouterLink,
   ],
   templateUrl: './sign-in.page.html',
   styleUrl: './sign-in.page.scss',
@@ -61,6 +62,10 @@ export class SignInPage {
       )
       .subscribe({
         next: () => {
+          if (this.session.requiresPasswordChange()) {
+            void this.router.navigateByUrl('/set-password');
+            return;
+          }
           const returnUrl = safeLocalReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
           void this.router.navigateByUrl(returnUrl ?? '/tickets');
         },

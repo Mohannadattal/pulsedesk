@@ -5,15 +5,16 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.dependencies.services import get_authentication_service
+from app.core.security import TokenPurpose
 from app.exceptions.auth import AuthenticationError, AuthorizationError
 from app.models.user import User, UserRole
-from app.services.auth import AuthenticationService
+from app.services.auth import AuthenticatedSession, AuthenticationService
 
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_current_user(
+def get_authenticated_session(
     credentials: Annotated[
         HTTPAuthorizationCredentials | None,
         Depends(bearer_scheme),
@@ -22,11 +23,30 @@ def get_current_user(
         AuthenticationService,
         Depends(get_authentication_service),
     ],
-) -> User:
+) -> AuthenticatedSession:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise AuthenticationError
 
-    return authentication_service.authenticate_access_token(credentials.credentials)
+    return authentication_service.authenticate_session(credentials.credentials)
+
+
+def get_current_user(
+    session: Annotated[AuthenticatedSession, Depends(get_authenticated_session)],
+) -> User:
+    if session.purpose != TokenPurpose.ACCESS or session.user.must_change_password:
+        raise AuthenticationError
+    return session.user
+
+
+def get_password_change_user(
+    session: Annotated[AuthenticatedSession, Depends(get_authenticated_session)],
+) -> AuthenticatedSession:
+    if (
+        session.purpose != TokenPurpose.PASSWORD_CHANGE
+        or not session.user.must_change_password
+    ):
+        raise AuthenticationError
+    return session
 
 
 def require_roles(*allowed_roles: UserRole) -> Callable[..., User]:

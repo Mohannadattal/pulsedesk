@@ -8,12 +8,14 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     <nav class="admin-nav" aria-label="Administration">
       <a routerLink="users" routerLinkActive="admin-nav__active">Users</a>
       <a routerLink="categories" routerLinkActive="admin-nav__active">Categories</a>
+      <a routerLink="password-resets" routerLinkActive="admin-nav__active">Password resets</a>
     </nav>
     <router-outlet />
   `,
   styles: `
     .admin-nav {
       display: flex;
+      flex-wrap: wrap;
       gap: var(--pd-space-1);
       margin-bottom: var(--pd-space-5);
       padding: var(--pd-space-1);
