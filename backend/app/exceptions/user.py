@@ -12,3 +12,11 @@ class UserNotFoundError(Exception):
 
 class InitialAdminAlreadyExistsError(Exception):
     """Raised when bootstrap is attempted after an admin already exists."""
+
+
+class UserSelfDeactivationForbiddenError(Exception):
+    """Raised when an administrator attempts to deactivate their own account."""
+
+
+class LastActiveAdminRequiredError(Exception):
+    """Raised when deactivation would leave no active administrator."""

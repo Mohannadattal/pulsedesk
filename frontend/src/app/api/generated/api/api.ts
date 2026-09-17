@@ -1,3 +1,6 @@
+export * from './administration.service';
+import { AdministrationApi } from './administration.service';
+export * from './administration.serviceInterface';
 export * from './authentication.service';
 import { AuthenticationApi } from './authentication.service';
 export * from './authentication.serviceInterface';
@@ -13,4 +16,11 @@ export * from './tickets.serviceInterface';
 export * from './users.service';
 import { UsersApi } from './users.service';
 export * from './users.serviceInterface';
-export const APIS = [AuthenticationApi, CategoriesApi, HealthApi, TicketsApi, UsersApi];
+export const APIS = [
+  AdministrationApi,
+  AuthenticationApi,
+  CategoriesApi,
+  HealthApi,
+  TicketsApi,
+  UsersApi,
+];

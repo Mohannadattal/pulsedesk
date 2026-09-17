@@ -20,6 +20,42 @@ class UserRepository:
         statement = select(User).where(User.id == user_id)
         return self.db.scalar(statement)
 
+    def get_by_id_for_update(self, user_id: int) -> User | None:
+        statement = (
+            select(User)
+            .where(User.id == user_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return self.db.scalar(statement)
+
+    def lock_by_ids(self, user_ids: set[int]) -> list[User]:
+        if not user_ids:
+            return []
+        statement = (
+            select(User)
+            .where(User.id.in_(user_ids))
+            .order_by(User.id.asc())
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return list(self.db.scalars(statement).all())
+
+    def lock_active_admins(self) -> list[User]:
+        # Every competing admin deactivation takes the same ordered row locks, so
+        # two admins cannot each decide that the other one may be deactivated.
+        statement = (
+            select(User)
+            .where(
+                User.role == UserRole.ADMIN.value,
+                User.is_active.is_(True),
+            )
+            .order_by(User.id.asc())
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return list(self.db.scalars(statement).all())
+
     def get_display_references_by_ids(self, user_ids: set[int]) -> list[User]:
         """Resolve historical display references, including inactive users."""
         if not user_ids:
@@ -73,5 +109,11 @@ class UserRepository:
                 raise DuplicateUserEmailError from error
             raise
 
+        self.db.refresh(user)
+        return user
+
+    def save(self, user: User) -> User:
+        self.db.add(user)
+        self.db.flush()
         self.db.refresh(user)
         return user

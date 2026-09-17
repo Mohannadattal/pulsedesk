@@ -1,0 +1,40 @@
+<h2 mat-dialog-title>{{ category ? 'Edit category' : 'Create category' }}</h2>
+<mat-dialog-content>
+  <form id="category-form" [formGroup]="form" (ngSubmit)="submit()">
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" maxlength="100" cdkFocusInitial />
+      @if (form.controls.name.hasError('required')) {
+        <mat-error>Name is required.</mat-error>
+      } @else if (nameServerError()) {
+        <mat-error>{{ nameServerError() }}</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" maxlength="500" rows="4"></textarea>
+      <mat-hint align="end">{{ form.controls.description.value.length }}/500</mat-hint>
+      @if (form.controls.description.hasError('maxlength')) {
+        <mat-error>Use 500 characters or fewer.</mat-error>
+      }
+    </mat-form-field>
+    @if (errorMessage()) {
+      <p class="form-error" role="alert">{{ errorMessage() }}</p>
+    }
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close [disabled]="submitting()">Cancel</button>
+  <button
+    mat-flat-button
+    type="submit"
+    form="category-form"
+    [disabled]="submitting() || unchanged()"
+  >
+    @if (submitting()) {
+      <mat-spinner diameter="18" />
+    } @else {
+      {{ category ? 'Save changes' : 'Create category' }}
+    }
+  </button>
+</mat-dialog-actions>

@@ -25,6 +25,8 @@ import { Observable } from 'rxjs';
 // @ts-ignore
 import { ErrorResponse } from '../model/errorResponse';
 // @ts-ignore
+import { UserActivationUpdate } from '../model/userActivationUpdate';
+// @ts-ignore
 import { UserDirectoryListResponse } from '../model/userDirectoryListResponse';
 // @ts-ignore
 import { UserProvisionRequest } from '../model/userProvisionRequest';
@@ -363,6 +365,121 @@ export class UsersApi extends BaseService implements UsersApiInterface {
     return this.httpClient.request<UserDirectoryListResponse>('get', `${basePath}${localVarPath}`, {
       context: localVarHttpContext,
       params: localVarQueryParameters,
+      responseType: <any>responseType_,
+      ...(withCredentials ? { withCredentials } : {}),
+      headers: localVarHeaders,
+      observe: observe,
+      transferCache: localVarTransferCache,
+      reportProgress: reportProgress,
+    });
+  }
+
+  /**
+   * Update User Activation
+   * @param userId
+   * @param userActivationUpdate
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public updateUserActivation(
+    userId: number,
+    userActivationUpdate: UserActivationUpdate,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<UserResponse>;
+  public updateUserActivation(
+    userId: number,
+    userActivationUpdate: UserActivationUpdate,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpResponse<UserResponse>>;
+  public updateUserActivation(
+    userId: number,
+    userActivationUpdate: UserActivationUpdate,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpEvent<UserResponse>>;
+  public updateUserActivation(
+    userId: number,
+    userActivationUpdate: UserActivationUpdate,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<any> {
+    if (userId === null || userId === undefined) {
+      throw new Error(
+        'Required parameter userId was null or undefined when calling updateUserActivation.',
+      );
+    }
+    if (userActivationUpdate === null || userActivationUpdate === undefined) {
+      throw new Error(
+        'Required parameter userActivationUpdate was null or undefined when calling updateUserActivation.',
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (HTTPBearer) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'HTTPBearer',
+      'Authorization',
+      localVarHeaders,
+      'Bearer ',
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+    }
+
+    const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    // to determine the Content-Type header
+    const consumes: string[] = ['application/json'];
+    const httpContentTypeSelected: string | undefined =
+      this.configuration.selectHeaderContentType(consumes);
+    if (httpContentTypeSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+    }
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/users/${this.configuration.encodeParam({ name: 'userId', value: userId, in: 'path', style: 'simple', explode: false, dataType: 'number', dataFormat: undefined })}/activation`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<UserResponse>('patch', `${basePath}${localVarPath}`, {
+      context: localVarHttpContext,
+      body: userActivationUpdate,
       responseType: <any>responseType_,
       ...(withCredentials ? { withCredentials } : {}),
       headers: localVarHeaders,

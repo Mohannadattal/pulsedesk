@@ -1,0 +1,189 @@
+@mixin list-page {
+  :host {
+    display: block;
+  }
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--pd-space-4);
+    margin-bottom: var(--pd-space-5);
+  }
+  .eyebrow {
+    margin: 0 0 var(--pd-space-1);
+    color: var(--pd-color-action-strong);
+    font-size: 0.6875rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    letter-spacing: -0.035em;
+  }
+  .page-header p:last-child {
+    margin: var(--pd-space-2) 0 0;
+    color: var(--pd-color-text-muted);
+    font-size: 0.875rem;
+  }
+  .filters {
+    margin-bottom: var(--pd-space-4);
+    padding: var(--pd-space-3);
+    border: 1px solid var(--pd-color-border);
+    border-radius: var(--pd-radius-surface);
+    background: var(--pd-color-surface);
+  }
+  .filters form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pd-space-3);
+  }
+  .filters mat-form-field {
+    width: min(14rem, 100%);
+  }
+  .results {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--pd-color-border);
+    border-radius: var(--pd-radius-surface);
+    background: var(--pd-color-surface);
+  }
+  .results mat-progress-bar {
+    position: absolute;
+    z-index: 2;
+    inset: 0 0 auto;
+  }
+  .results__summary {
+    min-height: 2.75rem;
+    padding: 0.8rem var(--pd-space-4);
+    border-bottom: 1px solid var(--pd-color-border);
+    color: var(--pd-color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+  th,
+  td {
+    padding: var(--pd-space-3) var(--pd-space-4);
+    border-bottom: 1px solid var(--pd-color-border);
+    text-align: left;
+    vertical-align: middle;
+  }
+  th {
+    background: var(--pd-color-surface-muted);
+    color: var(--pd-color-text-muted);
+    font-size: 0.6875rem;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+  }
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  tbody tr:hover {
+    background: var(--pd-color-row-hover);
+  }
+  .secondary {
+    display: block;
+    color: var(--pd-color-text-muted);
+    font-size: 0.75rem;
+  }
+  .status {
+    display: inline-flex;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--pd-color-success-border);
+    border-radius: 999px;
+    background: var(--pd-color-success-soft);
+    color: var(--pd-color-success-strong);
+    font-size: 0.6875rem;
+    font-weight: 700;
+  }
+  .status--inactive {
+    border-color: var(--pd-color-border-strong);
+    background: var(--pd-color-surface-muted);
+    color: var(--pd-color-text-muted);
+  }
+  .status-message {
+    margin: 0 0 var(--pd-space-4);
+    padding: var(--pd-space-3);
+    border-radius: var(--pd-radius-control);
+    font-size: 0.8125rem;
+  }
+  .status-message--success {
+    border: 1px solid var(--pd-color-success-border);
+    background: var(--pd-color-success-soft);
+    color: var(--pd-color-success-strong);
+  }
+  .status-message--error {
+    border: 1px solid var(--pd-color-danger);
+    background: var(--pd-color-danger-soft);
+    color: var(--pd-color-danger-strong);
+  }
+  .loading {
+    min-height: 10rem;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--pd-color-border);
+    border-radius: var(--pd-radius-surface);
+    background: var(--pd-color-surface);
+    color: var(--pd-color-text-muted);
+  }
+  .cards {
+    display: none;
+  }
+  mat-paginator {
+    border-top: 1px solid var(--pd-color-border);
+  }
+  @media (max-width: 48rem) {
+    .page-header {
+      flex-direction: column;
+    }
+    .table-wrap {
+      display: none;
+    }
+    .cards {
+      display: grid;
+    }
+    .card {
+      padding: var(--pd-space-4);
+      border-bottom: 1px solid var(--pd-color-border);
+    }
+    .card__heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--pd-space-3);
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+    .card dl {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--pd-space-3);
+    }
+    .card dt {
+      color: var(--pd-color-text-muted);
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .card dd {
+      margin: 0;
+      font-size: 0.8125rem;
+    }
+  }
+  @media (max-width: 34rem) {
+    .filters form {
+      display: grid;
+    }
+    .filters mat-form-field {
+      width: 100%;
+    }
+  }
+}

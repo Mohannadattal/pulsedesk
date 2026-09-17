@@ -1,0 +1,178 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Administration</p>
+    <h1>Users</h1>
+    <p>Provision accounts and control access without changing user identity or role.</p>
+  </div>
+  <button mat-flat-button type="button" (click)="openProvisionDialog()">Provision user</button>
+</header>
+
+<section class="filters" aria-label="User filters">
+  <form [formGroup]="filterForm">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Role</mat-label>
+      <mat-select formControlName="role" (selectionChange)="applyFilters()">
+        <mat-option value="">All roles</mat-option>
+        @for (role of roles; track role) {
+          <mat-option [value]="role">{{ role }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Account state</mat-label>
+      <mat-select formControlName="active" (selectionChange)="applyFilters()">
+        <mat-option value="true">Active</mat-option>
+        <mat-option value="false">Inactive</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </form>
+</section>
+
+@if (successMessage()) {
+  <p class="status-message status-message--success" aria-live="polite">{{ successMessage() }}</p>
+}
+@if (actionError()) {
+  <p class="status-message status-message--error" role="alert">{{ actionError() }}</p>
+}
+
+@let current = state();
+@switch (current.kind) {
+  @case ('loading') {
+    <section class="loading" aria-label="Loading users" aria-live="polite">
+      <span>Loading users…</span>
+    </section>
+  }
+  @case ('error') {
+    <app-page-message
+      [kind]="current.error.kind === 'forbidden' ? 'forbidden' : 'error'"
+      [title]="errorTitle(current.error)"
+      detail="Your filters are preserved. Try loading the directory again."
+      actionLabel="Try again"
+      (action)="retry()"
+    />
+  }
+  @case ('loaded') {
+    <ng-container *ngTemplateOutlet="results; context: { $implicit: current }" />
+  }
+  @case ('refreshing') {
+    <ng-container *ngTemplateOutlet="results; context: { $implicit: current }" />
+  }
+}
+
+<ng-template #results let-current>
+  @if (current.refreshError) {
+    <p class="status-message status-message--error" role="alert">
+      The latest directory refresh failed. Confirmed user data is still shown.
+      <button mat-button type="button" (click)="retry()">Retry</button>
+    </p>
+  }
+  @if (current.page.items.length === 0) {
+    <app-page-message
+      title="No users found"
+      detail="No accounts match the selected role and state."
+    />
+  } @else {
+    <section class="results" [attr.aria-busy]="current.kind === 'refreshing'">
+      @if (current.kind === 'refreshing') {
+        <mat-progress-bar mode="indeterminate" aria-label="Refreshing users" />
+      }
+      <div class="results__summary" aria-live="polite">
+        {{ current.page.total }} {{ current.page.total === 1 ? 'user' : 'users' }}
+      </div>
+      <div class="table-wrap">
+        <table>
+          <caption class="visually-hidden">
+            User directory ordered by last name, first name, then account identifier
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">User</th>
+              <th scope="col">Role</th>
+              <th scope="col">Status</th>
+              <th scope="col">Created</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of current.page.items; track user.id) {
+              <tr>
+                <td>
+                  <strong>{{ user.firstName }} {{ user.lastName }}</strong
+                  ><span class="secondary">{{ user.email }}</span>
+                </td>
+                <td>{{ user.role }}</td>
+                <td>
+                  <span class="status" [class.status--inactive]="!user.isActive">{{
+                    user.isActive ? 'Active' : 'Inactive'
+                  }}</span>
+                </td>
+                <td>
+                  <time [attr.datetime]="user.createdAt.toISOString()">{{
+                    user.createdAt | localDateTime
+                  }}</time>
+                </td>
+                <td>
+                  <button
+                    mat-button
+                    type="button"
+                    [disabled]="mutatingUserId() !== null || isSelf(user)"
+                    [attr.aria-describedby]="isSelf(user) ? 'self-action-help' : null"
+                    (click)="requestActivationChange(user)"
+                  >
+                    {{ user.isActive ? 'Deactivate' : 'Reactivate' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="cards" aria-label="Users">
+        @for (user of current.page.items; track user.id) {
+          <article class="card">
+            <div class="card__heading">
+              <div>
+                <h2>{{ user.firstName }} {{ user.lastName }}</h2>
+                <span class="secondary">{{ user.email }}</span>
+              </div>
+              <span class="status" [class.status--inactive]="!user.isActive">{{
+                user.isActive ? 'Active' : 'Inactive'
+              }}</span>
+            </div>
+            <dl>
+              <div>
+                <dt>Role</dt>
+                <dd>{{ user.role }}</dd>
+              </div>
+              <div>
+                <dt>Created</dt>
+                <dd>{{ user.createdAt | localDateTime }}</dd>
+              </div>
+            </dl>
+            <button
+              mat-button
+              type="button"
+              [disabled]="mutatingUserId() !== null || isSelf(user)"
+              (click)="requestActivationChange(user)"
+            >
+              {{ user.isActive ? 'Deactivate' : 'Reactivate' }}
+            </button>
+          </article>
+        }
+      </div>
+      <p id="self-action-help" class="visually-hidden">
+        You cannot deactivate your own administrator account.
+      </p>
+      <mat-paginator
+        [length]="current.page.total"
+        [pageIndex]="current.page.page - 1"
+        [pageSize]="current.page.pageSize"
+        [pageSizeOptions]="pageSizes"
+        [disabled]="current.kind === 'refreshing'"
+        showFirstLastButtons
+        aria-label="User pages"
+        (page)="changePage($event)"
+      />
+    </section>
+  }
+</ng-template>

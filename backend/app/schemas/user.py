@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictBool, field_validator
 
 from app.models.user import UserRole
 from app.schemas.types import UtcDateTime
@@ -53,6 +53,12 @@ class UserResponse(UserBase):
     updated_at: UtcDateTime
 
 
+class UserActivationUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    is_active: StrictBool
+
+
 class UserDirectoryFilters(BaseModel):
     role: UserRole | None = None
     is_active: bool = True
@@ -72,6 +78,14 @@ class UserDirectoryEntry(BaseModel):
 
 class UserDirectoryListResponse(BaseModel):
     items: list[UserDirectoryEntry]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+
+class AdminUserDirectoryListResponse(BaseModel):
+    items: list[UserResponse]
     page: int
     page_size: int
     total: int

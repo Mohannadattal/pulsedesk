@@ -12,6 +12,7 @@ import { HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { ErrorResponse } from '../model/models';
+import { UserActivationUpdate } from '../model/models';
 import { UserDirectoryListResponse } from '../model/models';
 import { UserProvisionRequest } from '../model/models';
 import { UserResponse } from '../model/models';
@@ -56,4 +57,16 @@ export interface UsersApiInterface {
     pageSize?: number,
     extraHttpRequestParams?: any,
   ): Observable<UserDirectoryListResponse>;
+
+  /**
+   * Update User Activation
+   *
+   * @param userId
+   * @param userActivationUpdate
+   */
+  updateUserActivation(
+    userId: number,
+    userActivationUpdate: UserActivationUpdate,
+    extraHttpRequestParams?: any,
+  ): Observable<UserResponse>;
 }

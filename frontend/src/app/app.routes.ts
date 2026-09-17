@@ -20,6 +20,13 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/tickets/tickets.routes').then((routes) => routes.TICKET_ROUTES),
       },
+      {
+        path: 'administration',
+        loadChildren: () =>
+          import('./features/administration/administration.routes').then(
+            (routes) => routes.ADMINISTRATION_ROUTES,
+          ),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'tickets' },
       { path: '**', redirectTo: 'tickets' },
     ],

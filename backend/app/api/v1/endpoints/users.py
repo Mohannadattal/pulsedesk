@@ -13,6 +13,7 @@ from app.schemas.error import ErrorResponse
 from app.schemas.user import (
     UserDirectoryFilters,
     UserDirectoryListResponse,
+    UserActivationUpdate,
     UserProvisionRequest,
     UserResponse,
 )
@@ -101,3 +102,35 @@ def get_user(
     ],
 ) -> UserResponse:
     return user_service.get_user(user_id)
+
+
+@router.patch(
+    "/{user_id}/activation",
+    response_model=UserResponse,
+    operation_id="update_user_activation",
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Authentication is required.",
+            "model": ErrorResponse,
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "description": "Administrator access is required.",
+            "model": ErrorResponse,
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "User not found.",
+            "model": ErrorResponse,
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": "The requested activation change violates an account invariant.",
+            "model": ErrorResponse,
+        },
+    },
+)
+def update_user_activation(
+    user_id: Annotated[int, Path(gt=0)],
+    data: UserActivationUpdate,
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_admin: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+) -> UserResponse:
+    return user_service.update_activation(user_id, data, current_admin)

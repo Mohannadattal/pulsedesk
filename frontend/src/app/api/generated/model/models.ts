@@ -1,4 +1,5 @@
 export * from './accessTokenResponse';
+export * from './adminUserDirectoryListResponse';
 export * from './categoryCreate';
 export * from './categoryReference';
 export * from './categoryResponse';
@@ -27,6 +28,7 @@ export * from './ticketPriorityUpdate';
 export * from './ticketResponse';
 export * from './ticketStatus';
 export * from './ticketStatusUpdate';
+export * from './userActivationUpdate';
 export * from './userDirectoryEntry';
 export * from './userDirectoryListResponse';
 export * from './userProvisionRequest';

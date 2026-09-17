@@ -4,12 +4,14 @@ import { firstValueFrom, Observable } from 'rxjs';
 import { vi } from 'vitest';
 
 import { AuthSessionStore } from './auth-session.store';
-import { anonymousOnlyGuard, authGuard } from './auth.guards';
+import { UserRole } from '../../api/generated/model/userRole';
+import { adminGuard, anonymousOnlyGuard, authGuard } from './auth.guards';
 
 describe('auth guards', () => {
   const session = {
     restore: vi.fn().mockResolvedValue(undefined),
     isAuthenticated: vi.fn(),
+    currentUser: vi.fn(),
   };
   const signInTree = {} as UrlTree;
   const ticketsTree = {} as UrlTree;
@@ -57,4 +59,29 @@ describe('auth guards', () => {
     expect(resolved).toBe(ticketsTree);
     expect(router.createUrlTree).toHaveBeenCalledWith(['/tickets']);
   });
+
+  it('allows an administrator into Administration', async () => {
+    session.currentUser.mockReturnValue({ role: UserRole.ADMIN });
+
+    const result = TestBed.runInInjectionContext(() =>
+      adminGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+    );
+
+    expect(await firstValueFrom(result as Observable<boolean | UrlTree>)).toBe(true);
+    expect(session.restore).toHaveBeenCalledOnce();
+  });
+
+  it.each([UserRole.EMPLOYEE, UserRole.AGENT])(
+    'redirects %s away from Administration before feature activation',
+    async (role) => {
+      session.currentUser.mockReturnValue({ role });
+
+      const result = TestBed.runInInjectionContext(() =>
+        adminGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+      );
+
+      expect(await firstValueFrom(result as Observable<boolean | UrlTree>)).toBe(ticketsTree);
+      expect(router.createUrlTree).toHaveBeenCalledWith(['/tickets']);
+    },
+  );
 });

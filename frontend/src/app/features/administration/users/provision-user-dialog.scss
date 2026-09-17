@@ -1,0 +1,42 @@
+:host {
+  display: block;
+}
+mat-dialog-content {
+  width: min(38rem, 82vw);
+}
+.dialog-intro {
+  margin: 0 0 var(--pd-space-4);
+  color: var(--pd-color-text-muted);
+  font-size: 0.8125rem;
+}
+form {
+  display: grid;
+  gap: var(--pd-space-3);
+  padding-top: var(--pd-space-1);
+}
+.name-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--pd-space-3);
+}
+.form-error {
+  margin: 0;
+  padding: var(--pd-space-3);
+  border: 1px solid var(--pd-color-danger);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-color-danger-soft);
+  color: var(--pd-color-danger-strong);
+  font-size: 0.8125rem;
+}
+button mat-spinner {
+  display: inline-block;
+  margin-right: var(--pd-space-2);
+}
+@media (max-width: 38rem) {
+  mat-dialog-content {
+    width: auto;
+  }
+  .name-fields {
+    grid-template-columns: 1fr;
+  }
+}

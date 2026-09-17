@@ -1,5 +1,7 @@
 .gitignore
 api.base.service.ts
+api/administration.service.ts
+api/administration.serviceInterface.ts
 api/api.ts
 api/authentication.service.ts
 api/authentication.serviceInterface.ts
@@ -14,6 +16,7 @@ api/users.serviceInterface.ts
 configuration.ts
 encoder.ts
 model/accessTokenResponse.ts
+model/adminUserDirectoryListResponse.ts
 model/categoryCreate.ts
 model/categoryReference.ts
 model/categoryResponse.ts
@@ -43,6 +46,7 @@ model/ticketPriorityUpdate.ts
 model/ticketResponse.ts
 model/ticketStatus.ts
 model/ticketStatusUpdate.ts
+model/userActivationUpdate.ts
 model/userDirectoryEntry.ts
 model/userDirectoryListResponse.ts
 model/userProvisionRequest.ts

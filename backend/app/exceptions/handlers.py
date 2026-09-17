@@ -28,8 +28,10 @@ from app.exceptions.ticket import (
     TicketNumberAllocationError,
 )
 from app.exceptions.user import (
+    LastActiveAdminRequiredError,
     UserAlreadyExistsError,
     UserNotFoundError,
+    UserSelfDeactivationForbiddenError,
 )
 from app.schemas.error import ErrorCode
 
@@ -63,6 +65,16 @@ DOMAIN_ERROR_DETAILS: dict[type[Exception], tuple[int, ErrorCode, str]] = {
         status.HTTP_404_NOT_FOUND,
         ErrorCode.USER_NOT_FOUND,
         "User was not found.",
+    ),
+    UserSelfDeactivationForbiddenError: (
+        status.HTTP_409_CONFLICT,
+        ErrorCode.USER_SELF_DEACTIVATION_FORBIDDEN,
+        "Administrators cannot deactivate their own account.",
+    ),
+    LastActiveAdminRequiredError: (
+        status.HTTP_409_CONFLICT,
+        ErrorCode.LAST_ACTIVE_ADMIN_REQUIRED,
+        "At least one administrator must remain active.",
     ),
     CategoryNotFoundError: (
         status.HTTP_404_NOT_FOUND,

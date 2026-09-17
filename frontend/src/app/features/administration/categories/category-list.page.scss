@@ -1,0 +1,5 @@
+@use '../administration-list' as administration;
+@include administration.list-page;
+.actions {
+  white-space: nowrap;
+}

@@ -1,0 +1,169 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Administration</p>
+    <h1>Categories</h1>
+    <p>Maintain the category choices used across ticket creation and support workflows.</p>
+  </div>
+  <button mat-flat-button type="button" (click)="openForm()">Create category</button>
+</header>
+
+<section class="filters" aria-label="Category filters">
+  <mat-checkbox [checked]="includeInactive()" (change)="toggleInactive($event.checked)"
+    >Show inactive categories</mat-checkbox
+  >
+</section>
+
+@if (successMessage()) {
+  <p class="status-message status-message--success" aria-live="polite">{{ successMessage() }}</p>
+}
+@if (actionError()) {
+  <p class="status-message status-message--error" role="alert">{{ actionError() }}</p>
+}
+
+@let current = state();
+@switch (current.kind) {
+  @case ('loading') {
+    <section class="loading" aria-label="Loading categories" aria-live="polite">
+      <span>Loading categories…</span>
+    </section>
+  }
+  @case ('error') {
+    <app-page-message
+      [kind]="current.error.kind === 'forbidden' ? 'forbidden' : 'error'"
+      [title]="errorTitle(current.error)"
+      detail="Try loading the category list again."
+      actionLabel="Try again"
+      (action)="retry()"
+    />
+  }
+  @case ('loaded') {
+    @if (current.refreshError) {
+      <p class="status-message status-message--error" role="alert">
+        The latest refresh failed. Confirmed category data is still shown.
+        <button mat-button type="button" (click)="retry()">Retry</button>
+      </p>
+    }
+    @if (current.items.length === 0) {
+      <app-page-message
+        title="No categories found"
+        [detail]="
+          includeInactive()
+            ? 'Create the first ticket category.'
+            : 'There are no active categories. Show inactive categories or create one.'
+        "
+      />
+    } @else {
+      <ng-container
+        [ngTemplateOutlet]="categoryResults"
+        [ngTemplateOutletContext]="{ $implicit: current }"
+      />
+    }
+  }
+  @case ('refreshing') {
+    <ng-container
+      [ngTemplateOutlet]="categoryResults"
+      [ngTemplateOutletContext]="{ $implicit: current }"
+    />
+  }
+}
+
+<ng-template #categoryResults let-current>
+  <section class="results" [attr.aria-busy]="current.kind === 'refreshing'">
+    @if (current.kind === 'refreshing') {
+      <mat-progress-bar mode="indeterminate" aria-label="Refreshing categories" />
+    }
+    <div class="results__summary" aria-live="polite">
+      {{ current.items.length }} {{ current.items.length === 1 ? 'category' : 'categories' }}
+    </div>
+    <div class="table-wrap">
+      <table>
+        <caption class="visually-hidden">
+          Ticket categories ordered by name
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Category</th>
+            <th scope="col">Status</th>
+            <th scope="col">Updated</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (category of current.items; track category.id) {
+            <tr>
+              <td>
+                <strong>{{ category.name }}</strong
+                ><span class="secondary">{{ category.description || 'No description' }}</span>
+              </td>
+              <td>
+                <span class="status" [class.status--inactive]="!category.isActive">{{
+                  category.isActive ? 'Active' : 'Inactive'
+                }}</span>
+              </td>
+              <td>
+                <time [attr.datetime]="category.updatedAt.toISOString()">{{
+                  category.updatedAt | localDateTime
+                }}</time>
+              </td>
+              <td class="actions">
+                <button
+                  mat-button
+                  type="button"
+                  [disabled]="mutatingCategoryId() !== null"
+                  (click)="openForm(category)"
+                >
+                  Edit</button
+                ><button
+                  mat-button
+                  type="button"
+                  [disabled]="mutatingCategoryId() !== null"
+                  (click)="requestActivationChange(category)"
+                >
+                  {{ category.isActive ? 'Deactivate' : 'Reactivate' }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="cards" aria-label="Categories">
+      @for (category of current.items; track category.id) {
+        <article class="card">
+          <div class="card__heading">
+            <div>
+              <h2>{{ category.name }}</h2>
+              <span class="secondary">{{ category.description || 'No description' }}</span>
+            </div>
+            <span class="status" [class.status--inactive]="!category.isActive">{{
+              category.isActive ? 'Active' : 'Inactive'
+            }}</span>
+          </div>
+          <dl>
+            <div>
+              <dt>Updated</dt>
+              <dd>{{ category.updatedAt | localDateTime }}</dd>
+            </div>
+          </dl>
+          <div>
+            <button
+              mat-button
+              type="button"
+              [disabled]="mutatingCategoryId() !== null"
+              (click)="openForm(category)"
+            >
+              Edit</button
+            ><button
+              mat-button
+              type="button"
+              [disabled]="mutatingCategoryId() !== null"
+              (click)="requestActivationChange(category)"
+            >
+              {{ category.isActive ? 'Deactivate' : 'Reactivate' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  </section>
+</ng-template>

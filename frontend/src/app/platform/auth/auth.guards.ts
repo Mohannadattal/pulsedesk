@@ -4,6 +4,7 @@ import { from, map } from 'rxjs';
 
 import { AuthSessionStore } from './auth-session.store';
 import { safeLocalReturnUrl } from './return-url';
+import { UserRole } from '../../api/generated/model/userRole';
 
 export const authGuard: CanActivateFn = (_route, state) => {
   const session = inject(AuthSessionStore);
@@ -26,5 +27,16 @@ export const anonymousOnlyGuard: CanActivateFn = () => {
 
   return from(session.restore()).pipe(
     map(() => (session.isAuthenticated() ? router.createUrlTree(['/tickets']) : true)),
+  );
+};
+
+export const adminGuard: CanActivateFn = () => {
+  const session = inject(AuthSessionStore);
+  const router = inject(Router);
+
+  return from(session.restore()).pipe(
+    map(() =>
+      session.currentUser()?.role === UserRole.ADMIN ? true : router.createUrlTree(['/tickets']),
+    ),
   );
 };
