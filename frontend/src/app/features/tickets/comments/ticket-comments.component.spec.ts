@@ -129,6 +129,31 @@ describe('TicketCommentsComponent', () => {
     expect((fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement).value).toBe('');
   });
 
+  it('resets the employee composer without displaying required validation after success', async () => {
+    await render(UserRole.EMPLOYEE);
+
+    enterComment('Employee update');
+    submitForm();
+
+    expect(tickets.addComment).toHaveBeenCalledWith(
+      17,
+      'Employee update',
+      CommentVisibility.PUBLIC,
+    );
+    expectComposerToBeClean();
+  });
+
+  it('displays required validation when an employee submits empty after a successful reset', async () => {
+    await render(UserRole.EMPLOYEE);
+
+    enterComment('Employee update');
+    submitForm();
+    submitForm();
+
+    expect(tickets.addComment).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.textContent).toContain('Enter a comment.');
+  });
+
   it('uses authoritative post-submit totals to load the newest page', async () => {
     await render(UserRole.EMPLOYEE, of({ ...EMPTY_PAGE, page: 1, total: 19, totalPages: 1 }));
     tickets.listComments
@@ -192,7 +217,7 @@ describe('TicketCommentsComponent', () => {
     expect(tickets.listComments).toHaveBeenCalledTimes(callsBeforeDestroy);
   });
 
-  it('maps normalized content validation errors to the comment field', async () => {
+  it('does not clear or reset valid user-entered text after a failed submission', async () => {
     tickets.addComment.mockReturnValue(
       throwError(
         () =>
@@ -204,15 +229,18 @@ describe('TicketCommentsComponent', () => {
     await render();
 
     enterComment('Any update?');
+    blurComment();
     submitForm();
 
     expect(fixture.nativeElement.textContent).toContain('Comment was not accepted.');
     expect((fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement).value).toBe(
       'Any update?',
     );
+    expect(fixture.componentInstance['commentForm'].controls.content.dirty).toBe(true);
+    expect(fixture.componentInstance['commentForm'].controls.content.touched).toBe(true);
   });
 
-  it('allows an Agent to submit an INTERNAL comment in the mixed timeline', async () => {
+  it('resets an Agent INTERNAL composer without displaying required validation after success', async () => {
     await render(
       UserRole.AGENT,
       of({
@@ -234,10 +262,14 @@ describe('TicketCommentsComponent', () => {
       'Agent-only note',
       CommentVisibility.INTERNAL,
     );
+    expect(fixture.componentInstance['commentForm'].controls.visibility.value).toBe(
+      CommentVisibility.INTERNAL,
+    );
+    expectComposerToBeClean();
     expect(fixture.nativeElement.textContent).toContain('Internal');
   });
 
-  it('allows an Admin to submit a PUBLIC comment explicitly', async () => {
+  it('resets an Admin PUBLIC composer without displaying required validation after success', async () => {
     await render(UserRole.ADMIN);
 
     enterComment('Requester update');
@@ -248,6 +280,10 @@ describe('TicketCommentsComponent', () => {
       'Requester update',
       CommentVisibility.PUBLIC,
     );
+    expect(fixture.componentInstance['commentForm'].controls.visibility.value).toBe(
+      CommentVisibility.PUBLIC,
+    );
+    expectComposerToBeClean();
   });
 
   it('allows an Agent to submit a PUBLIC comment explicitly', async () => {
@@ -260,6 +296,23 @@ describe('TicketCommentsComponent', () => {
       17,
       'Public Agent update',
       CommentVisibility.PUBLIC,
+    );
+  });
+
+  it('displays required validation when support submits empty after a successful reset', async () => {
+    await render(UserRole.AGENT);
+    fixture.componentInstance['commentForm'].controls.visibility.setValue(
+      CommentVisibility.INTERNAL,
+    );
+
+    enterComment('Agent-only note');
+    submitForm();
+    submitForm();
+
+    expect(tickets.addComment).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.textContent).toContain('Enter a comment.');
+    expect(fixture.componentInstance['commentForm'].controls.visibility.value).toBe(
+      CommentVisibility.INTERNAL,
     );
   });
 
@@ -280,6 +333,20 @@ describe('TicketCommentsComponent', () => {
     textarea.value = value;
     textarea.dispatchEvent(new Event('input'));
     fixture.detectChanges();
+  }
+
+  function blurComment(): void {
+    const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+  }
+
+  function expectComposerToBeClean(): void {
+    const content = fixture.componentInstance['commentForm'].controls.content;
+    expect((fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement).value).toBe('');
+    expect(content.pristine).toBe(true);
+    expect(content.untouched).toBe(true);
+    expect(fixture.nativeElement.textContent).not.toContain('Enter a comment.');
   }
 
   function submitForm(): void {

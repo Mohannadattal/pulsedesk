@@ -6,12 +6,14 @@ import {
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
   FormControl,
   FormGroup,
+  FormGroupDirective,
   ReactiveFormsModule,
   ValidationErrors,
   ValidatorFn,
@@ -85,6 +87,7 @@ const maxUtf8Bytes =
 export class TicketCommentsComponent {
   private readonly tickets = inject(TicketsDataAccess);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly commentFormDirective = viewChild.required(FormGroupDirective);
   private readonly pageRequests = new BehaviorSubject<CommentsPageRequest>({
     kind: 'page',
     page: 1,
@@ -173,7 +176,7 @@ export class TicketCommentsComponent {
       .subscribe({
         next: () => {
           this.submitting.set(false);
-          this.commentForm.controls.content.reset();
+          this.commentFormDirective().resetForm({ content: '', visibility });
           this.submissionSuccess.set('Comment added. Showing the newest comments.');
           this.pageRequests.next({ kind: 'newest' });
           this.commentAdded.emit();
