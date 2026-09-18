@@ -15,107 +15,150 @@
   }
 </header>
 
-<section class="filters" aria-label="Ticket filters">
-  <form [formGroup]="filterForm">
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>Status</mat-label>
-      <mat-select formControlName="status" (selectionChange)="applyFilters()">
-        <mat-option value="">All statuses</mat-option>
-        @for (status of statuses; track status) {
-          <mat-option [value]="status">{{ enumLabel(status) }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>Priority</mat-label>
-      <mat-select formControlName="priority" (selectionChange)="applyFilters()">
-        <mat-option value="">All priorities</mat-option>
-        @for (priority of priorities; track priority) {
-          <mat-option [value]="priority">{{ enumLabel(priority) }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    @if (isSupport) {
+@if (isSupport) {
+  <section class="ticket-search" aria-labelledby="ticket-search-heading">
+    <div>
+      <h2 id="ticket-search-heading">Find ticket</h2>
+      <p>Search the internal ticket scope by exact number or title prefix.</p>
+    </div>
+    <form [formGroup]="searchForm" (ngSubmit)="executeSearch()">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Category</mat-label>
-        <mat-select formControlName="categoryId" (selectionChange)="applyFilters()">
-          <mat-option value="">All categories</mat-option>
-          @for (category of categories().items; track category.id) {
-            <mat-option [value]="category.id">{{ category.name }}</mat-option>
+        <mat-label>Search by</mat-label>
+        <mat-select formControlName="kind">
+          @for (kind of searchKinds; track kind) {
+            <mat-option [value]="kind">{{ searchKindLabel(kind) }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
-
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Assignment</mat-label>
-        <mat-select formControlName="assignment" (selectionChange)="applyFilters()">
-          <mat-option value="">All tickets</mat-option>
-          <mat-option value="unassigned">Unassigned</mat-option>
-          <mat-option value="assigned">Any assigned</mat-option>
-          <mat-option value="mine">Assigned to me</mat-option>
-          @for (agent of agents().items; track agent.id) {
-            <mat-option [value]="'agent:' + agent.id">{{ agent.name }}</mat-option>
-          }
-        </mat-select>
+        <mat-label>Value</mat-label>
+        <input matInput formControlName="value" autocomplete="off" />
       </mat-form-field>
+      <button mat-flat-button type="submit" [disabled]="searchState().kind === 'loading'">
+        Search
+      </button>
+      <button mat-button type="button" (click)="clearSearch()">Clear</button>
+    </form>
+    @if (searchValidationError()) {
+      <p class="search-error" role="alert">{{ searchValidationError() }}</p>
     }
+  </section>
+}
 
-    @if (
-      filterForm.controls.status.value ||
-      filterForm.controls.priority.value ||
-      filterForm.controls.categoryId.value ||
-      filterForm.controls.assignment.value
-    ) {
-      <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
-    }
-  </form>
-  @if (isSupport && (categories().status === 'failed' || agents().status === 'failed')) {
-    <p class="reference-warning" role="status">
-      Some filter choices are temporarily unavailable. Ticket results are unaffected.
-    </p>
-  }
-</section>
-
-@let current = state();
-@switch (current.kind) {
-  @case ('loading') {
-    <section class="initial-loading" aria-live="polite" aria-label="Loading tickets">
-      <div class="loading-line"></div>
-      <div class="loading-line"></div>
-      <div class="loading-line"></div>
-      <span class="visually-hidden">Loading tickets…</span>
-    </section>
-  }
-  @case ('error') {
+@if (searchState().kind === 'idle') {
+  @if (isSupport) {
     <app-page-message
-      [kind]="current.error.kind === 'forbidden' ? 'forbidden' : 'error'"
-      [title]="errorTitle(current.error)"
-      [detail]="errorDetail(current.error)"
-      actionLabel="Try again"
-      (action)="retry()"
+      title="Find a ticket"
+      detail="Search by ticket number or title to view tickets in your authorized scope."
     />
+  } @else {
+    <section class="filters" aria-label="Ticket filters">
+      <form [formGroup]="filterForm">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="status" (selectionChange)="applyFilters()">
+            <mat-option value="">All statuses</mat-option>
+            @for (status of statuses; track status) {
+              <mat-option [value]="status">{{ enumLabel(status) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Priority</mat-label>
+          <mat-select formControlName="priority" (selectionChange)="applyFilters()">
+            <mat-option value="">All priorities</mat-option>
+            @for (priority of priorities; track priority) {
+              <mat-option [value]="priority">{{ enumLabel(priority) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        @if (
+          filterForm.controls.status.value ||
+          filterForm.controls.priority.value ||
+          filterForm.controls.categoryId.value ||
+          filterForm.controls.assignment.value
+        ) {
+          <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+        }
+      </form>
+    </section>
+
+    @let current = state();
+    @switch (current.kind) {
+      @case ('loading') {
+        <section class="initial-loading" aria-live="polite" aria-label="Loading tickets">
+          <div class="loading-line"></div>
+          <div class="loading-line"></div>
+          <div class="loading-line"></div>
+          <span class="visually-hidden">Loading tickets…</span>
+        </section>
+      }
+      @case ('error') {
+        <app-page-message
+          [kind]="current.error.kind === 'forbidden' ? 'forbidden' : 'error'"
+          [title]="errorTitle(current.error)"
+          [detail]="errorDetail(current.error)"
+          actionLabel="Try again"
+          (action)="retry()"
+        />
+      }
+      @case ('loaded') {
+        <ng-container *ngTemplateOutlet="ticketResults; context: { $implicit: current }" />
+      }
+      @case ('refreshing') {
+        <ng-container *ngTemplateOutlet="ticketResults; context: { $implicit: current }" />
+      }
+      @case ('idle') {}
+    }
   }
-  @case ('loaded') {
-    <ng-container *ngTemplateOutlet="ticketResults; context: { $implicit: current }" />
-  }
-  @case ('refreshing') {
-    <ng-container *ngTemplateOutlet="ticketResults; context: { $implicit: current }" />
+} @else {
+  @let search = searchState();
+  @switch (search.kind) {
+    @case ('loading') {
+      <section class="initial-loading" aria-live="polite" aria-label="Searching tickets">
+        <div class="loading-line"></div>
+        <div class="loading-line"></div>
+        <span class="visually-hidden">Searching tickets…</span>
+      </section>
+    }
+    @case ('error') {
+      <app-page-message
+        kind="error"
+        title="Ticket search could not be completed"
+        detail="Your search text is preserved. Try the search again or clear it."
+      />
+    }
+    @case ('loaded') {
+      <ng-container
+        *ngTemplateOutlet="ticketResults; context: { $implicit: search, searchMode: true }"
+      />
+    }
   }
 }
 
-<ng-template #ticketResults let-current>
+<ng-template #ticketResults let-current let-searchMode="searchMode">
   @if (current.page.items.length === 0) {
     <app-page-message
-      [title]="hasFilters(current.filters) ? 'No tickets match these filters' : 'No tickets yet'"
-      [detail]="
-        hasFilters(current.filters)
-          ? 'Adjust or clear the filters to see other tickets.'
-          : 'Tickets will appear here when they are created.'
+      [title]="
+        searchMode
+          ? 'No tickets match this search'
+          : hasFilters(current.filters)
+            ? 'No tickets match these filters'
+            : 'No tickets yet'
       "
-      [actionLabel]="hasFilters(current.filters) ? 'Clear filters' : undefined"
-      (action)="clearFilters()"
+      [detail]="
+        searchMode
+          ? 'Check the value or clear the search to start again.'
+          : hasFilters(current.filters)
+            ? 'Adjust or clear the filters to see other tickets.'
+            : 'Tickets will appear here when they are created.'
+      "
+      [actionLabel]="
+        searchMode ? 'Clear search' : hasFilters(current.filters) ? 'Clear filters' : undefined
+      "
+      (action)="searchMode ? clearSearch() : clearFilters()"
     />
   } @else {
     <section class="results" [attr.aria-busy]="current.kind === 'refreshing'">
@@ -233,10 +276,10 @@
         [pageIndex]="current.page.page - 1"
         [pageSize]="current.page.pageSize"
         [pageSizeOptions]="pageSizes"
-        [disabled]="current.kind === 'refreshing'"
+        [disabled]="current.kind === 'refreshing' || current.kind === 'loading'"
         showFirstLastButtons
         aria-label="Ticket pages"
-        (page)="changePage($event)"
+        (page)="searchMode ? changeSearchPage($event) : changePage($event)"
       />
     </section>
   }

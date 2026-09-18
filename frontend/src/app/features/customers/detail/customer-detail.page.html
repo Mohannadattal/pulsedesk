@@ -230,5 +230,33 @@
         }
       }
     </section>
+
+    <section class="panel ticket-lookup" aria-labelledby="ticket-lookup-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="ticket-lookup-heading">Follow up an existing ticket</h2>
+          <p>Use the ticket number supplied by this verified customer.</p>
+        </div>
+      </div>
+      @if (!verificationIsValid()) {
+        <p class="empty">Verify the customer before looking up a ticket for this call.</p>
+      } @else {
+        <form [formGroup]="lookupForm" (ngSubmit)="lookupTicket(customer)">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Ticket number</mat-label>
+            <input matInput formControlName="ticketNumber" placeholder="TKT-…" autocomplete="off" />
+          </mat-form-field>
+          <button mat-flat-button type="submit" [disabled]="lookupPending()">
+            {{ lookupPending() ? 'Finding…' : 'Find ticket' }}
+          </button>
+        </form>
+        @if (lookupForm.controls.ticketNumber.touched && lookupForm.controls.ticketNumber.invalid) {
+          <p class="error" role="alert">Enter a valid ticket number in the format TKT-…</p>
+        }
+      }
+      @if (lookupError()) {
+        <p class="error" role="alert">{{ lookupError() }}</p>
+      }
+    </section>
   }
 }

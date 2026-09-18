@@ -13,11 +13,17 @@ from app.schemas.customer import (
     CustomerProfileResponse,
     CustomerSearchRequest,
     CustomerUpdate,
+    CurrentCustomerVerificationResponse,
     CustomerVerificationCreate,
     CustomerVerificationResponse,
 )
 from app.schemas.error import ErrorResponse, ValidationErrorResponse
-from app.schemas.ticket import TicketListFilters, TicketListResponse
+from app.schemas.ticket import (
+    CustomerTicketLookupRequest,
+    TicketListFilters,
+    TicketListResponse,
+    TicketResponse,
+)
 from app.services.customer import CustomerService
 from app.services.ticket import TicketService
 
@@ -172,6 +178,26 @@ def create_customer_verification(
 
 
 @router.get(
+    "/{customer_id}/verifications/current",
+    response_model=CurrentCustomerVerificationResponse,
+    operation_id="get_current_customer_verification",
+    responses={**AUTH_RESPONSES, status.HTTP_404_NOT_FOUND: {"model": ErrorResponse}},
+)
+def get_current_customer_verification(
+    customer_id: Annotated[int, Path(gt=0)],
+    customer_service: Annotated[CustomerService, Depends(get_customer_service)],
+    current_user: Annotated[
+        User, Depends(require_roles(UserRole.EMPLOYEE, UserRole.ADMIN))
+    ],
+) -> CurrentCustomerVerificationResponse:
+    return CurrentCustomerVerificationResponse(
+        verification=customer_service.get_current_verification(
+            customer_id, current_user
+        )
+    )
+
+
+@router.get(
     "/{customer_id}/tickets",
     response_model=TicketListResponse,
     operation_id="list_customer_tickets",
@@ -193,3 +219,30 @@ def list_customer_tickets(
     ],
 ) -> TicketListResponse:
     return ticket_service.list_customer_tickets(customer_id, filters, current_user)
+
+
+@router.post(
+    "/{customer_id}/tickets/lookup",
+    response_model=TicketResponse,
+    operation_id="lookup_customer_ticket",
+    responses={
+        **AUTH_RESPONSES,
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Customer, verification, or matching visible ticket not found.",
+            "model": ErrorResponse,
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Request validation failed or Customer verification is invalid.",
+            "model": ErrorResponse | ValidationErrorResponse,
+        },
+    },
+)
+def lookup_customer_ticket(
+    customer_id: Annotated[int, Path(gt=0)],
+    data: CustomerTicketLookupRequest,
+    ticket_service: Annotated[TicketService, Depends(get_ticket_service)],
+    current_user: Annotated[
+        User, Depends(require_roles(UserRole.EMPLOYEE, UserRole.ADMIN))
+    ],
+) -> TicketResponse:
+    return ticket_service.lookup_customer_ticket(customer_id, data, current_user)

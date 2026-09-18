@@ -10,6 +10,7 @@ from app.repositories.exceptions import (
     DuplicateTicketNumberError,
     is_mysql_duplicate_constraint,
 )
+from app.schemas.ticket import TicketSearchKind
 
 TICKET_NUMBER_UNIQUE_CONSTRAINT = "uq_tickets_ticket_number"
 TICKET_DISPLAY_REFERENCE_OPTIONS = (
@@ -34,6 +35,10 @@ TICKET_DISPLAY_REFERENCE_OPTIONS = (
         Customer.last_name,
     ),
 )
+
+
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 class TicketRepository:
@@ -65,6 +70,57 @@ class TicketRepository:
                 )
             )
         return self.db.scalar(statement)
+
+    def get_customer_ticket_by_number(
+        self,
+        *,
+        ticket_number: str,
+        customer_id: int,
+        employee_id: int | None,
+    ) -> Ticket | None:
+        statement = (
+            select(Ticket)
+            .options(*TICKET_DISPLAY_REFERENCE_OPTIONS)
+            .where(
+                Ticket.ticket_number == ticket_number,
+                Ticket.customer_id == customer_id,
+            )
+        )
+        if employee_id is not None:
+            statement = statement.where(
+                or_(
+                    Ticket.created_by_id == employee_id,
+                    Ticket.customer_id.is_not(None),
+                )
+            )
+        return self.db.scalar(statement)
+
+    def search(
+        self,
+        *,
+        kind: TicketSearchKind,
+        value: str,
+        page: int,
+        page_size: int,
+    ) -> tuple[list[Ticket], int]:
+        condition = (
+            Ticket.ticket_number == value
+            if kind == TicketSearchKind.TICKET_NUMBER
+            else Ticket.title.like(f"{_escape_like(value)}%", escape="\\")
+        )
+        total = (
+            self.db.scalar(select(func.count()).select_from(Ticket).where(condition))
+            or 0
+        )
+        statement = (
+            select(Ticket)
+            .options(*TICKET_DISPLAY_REFERENCE_OPTIONS)
+            .where(condition)
+            .order_by(Ticket.created_at.desc(), Ticket.id.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return list(self.db.scalars(statement).all()), total
 
     def get_by_id_with_display_references(self, ticket_id: int) -> Ticket | None:
         statement = (

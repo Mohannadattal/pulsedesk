@@ -11,7 +11,9 @@ describe('CustomersDataAccess', () => {
   const api = {
     listCustomers: vi.fn(),
     searchCustomers: vi.fn(),
+    getCurrentCustomerVerification: vi.fn(),
     createCustomerVerification: vi.fn(),
+    lookupCustomerTicket: vi.fn(),
   };
   beforeEach(() => {
     vi.clearAllMocks();
@@ -65,6 +67,87 @@ describe('CustomersDataAccess', () => {
     expect(api.createCustomerVerification).toHaveBeenCalledWith(
       8,
       { factors: [VerificationFactor.DATE_OF_BIRTH, VerificationFactor.PHONE] },
+      'body',
+      false,
+      { transferCache: false },
+    );
+  });
+
+  it('maps the safe current-verification projection without browser persistence', async () => {
+    api.getCurrentCustomerVerification.mockReturnValue(
+      of({
+        verification: {
+          id: 25,
+          customer_id: 8,
+          verified_at: '2026-09-18T08:00:00Z',
+          expires_at: '2026-09-18T08:30:00Z',
+        },
+      }),
+    );
+
+    const current = await firstValueFrom(
+      TestBed.inject(CustomersDataAccess).getCurrentVerification(8),
+    );
+
+    expect(api.getCurrentCustomerVerification).toHaveBeenCalledWith(8, 'body', false, {
+      transferCache: false,
+    });
+    expect(current).toEqual({
+      id: 25,
+      customerId: 8,
+      verifiedAt: new Date('2026-09-18T08:00:00Z'),
+      expiresAt: new Date('2026-09-18T08:30:00Z'),
+    });
+  });
+
+  it('maps an empty current-verification response to null', async () => {
+    api.getCurrentCustomerVerification.mockReturnValue(of({ verification: null }));
+
+    await expect(
+      firstValueFrom(TestBed.inject(CustomersDataAccess).getCurrentVerification(8)),
+    ).resolves.toBeNull();
+  });
+
+  it('supplies the verification id in the customer-context lookup body', async () => {
+    api.lookupCustomerTicket.mockReturnValue(
+      of({
+        id: 12,
+        ticket_number: 'TKT-4ZFUPC6W7ZFJDEWY',
+        title: 'Outlook issue',
+        description: 'Description',
+        status: 'OPEN',
+        priority: 'MEDIUM',
+        category_id: 1,
+        category: { id: 1, name: 'Support' },
+        created_by_id: 3,
+        created_by: { id: 3, first_name: 'Emma', last_name: 'Employee' },
+        assigned_to_id: null,
+        assigned_to: null,
+        customer_id: 8,
+        customer: {
+          id: 8,
+          customer_number: 'CUS-000008',
+          first_name: 'Thomas',
+          last_name: 'Müller',
+        },
+        customer_was_verified: true,
+        created_at: '2026-09-18T08:00:00Z',
+        updated_at: '2026-09-18T08:00:00Z',
+        resolved_at: null,
+        closed_at: null,
+      }),
+    );
+
+    await firstValueFrom(
+      TestBed.inject(CustomersDataAccess).lookupTicket(8, 'TKT-4ZFUPC6W7ZFJDEWY', 25),
+    );
+
+    expect(api.lookupCustomerTicket).toHaveBeenCalledWith(
+      8,
+      {
+        ticket_number: 'TKT-4ZFUPC6W7ZFJDEWY',
+        customer_verification_id: 25,
+      },
       'body',
       false,
       { transferCache: false },

@@ -41,6 +41,7 @@ from app.exceptions.password_reset_request import (
     PasswordResetTargetInactiveError,
 )
 from app.exceptions.ticket import (
+    CustomerTicketNotFoundError,
     InvalidTicketAssigneeError,
     InvalidTicketFilterError,
     InvalidTicketStatusTransitionError,
@@ -139,6 +140,11 @@ DOMAIN_ERROR_DETAILS: dict[type[Exception], tuple[int, ErrorCode, str]] = {
         status.HTTP_404_NOT_FOUND,
         ErrorCode.TICKET_NOT_FOUND,
         "Ticket was not found.",
+    ),
+    CustomerTicketNotFoundError: (
+        status.HTTP_404_NOT_FOUND,
+        ErrorCode.TICKET_NOT_FOUND,
+        "No ticket found for this customer.",
     ),
     InvalidTicketStatusTransitionError: (
         status.HTTP_409_CONFLICT,

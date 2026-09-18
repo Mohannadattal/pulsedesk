@@ -18,6 +18,7 @@ from app.schemas.ticket import (
     TicketListResponse,
     TicketPriorityUpdate,
     TicketResponse,
+    TicketSearchRequest,
     TicketStatusUpdate,
 )
 from app.schemas.ticket_comment import (
@@ -94,6 +95,28 @@ def list_tickets(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> TicketListResponse:
     return ticket_service.list_tickets(filters, current_user)
+
+
+@router.post(
+    "/search",
+    response_model=TicketListResponse,
+    operation_id="search_tickets",
+    responses={
+        **AUTH_RESPONSES,
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Request validation failed.",
+            "model": ValidationErrorResponse,
+        },
+    },
+)
+def search_tickets(
+    data: TicketSearchRequest,
+    ticket_service: Annotated[TicketService, Depends(get_ticket_service)],
+    current_user: Annotated[
+        User, Depends(require_roles(UserRole.AGENT, UserRole.ADMIN))
+    ],
+) -> TicketListResponse:
+    return ticket_service.search_tickets(data, current_user)
 
 
 @router.get(

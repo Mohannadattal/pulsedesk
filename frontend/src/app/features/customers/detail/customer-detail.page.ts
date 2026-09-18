@@ -13,6 +13,7 @@ import {
   catchError,
   combineLatest,
   finalize,
+  forkJoin,
   map,
   of,
   startWith,
@@ -34,12 +35,16 @@ import { Category } from '../../tickets/domain/category';
 import { TicketPage } from '../../tickets/domain/ticket';
 import { CustomerFormComponent, CustomerFormValue } from '../customer-form/customer-form.component';
 import { CustomersDataAccess } from '../data-access/customers-data-access';
-import { Customer, CustomerVerification } from '../domain/customer';
+import { ActiveCustomerVerification, Customer } from '../domain/customer';
 import { CustomerVerificationComponent } from '../verification/customer-verification.component';
 
 type DetailState =
   | { readonly kind: 'loading' }
-  | { readonly kind: 'loaded'; readonly customer: Customer }
+  | {
+      readonly kind: 'loaded';
+      readonly customer: Customer;
+      readonly verification: ActiveCustomerVerification | null;
+    }
   | { readonly kind: 'error'; readonly error: AppError };
 type HistoryState =
   | { readonly kind: 'loading' }
@@ -78,7 +83,7 @@ export class CustomerDetailPage {
   protected readonly isAdmin = this.session.currentUser()?.role === UserRole.ADMIN;
   protected readonly state = signal<DetailState>({ kind: 'loading' });
   protected readonly history = signal<HistoryState>({ kind: 'loading' });
-  protected readonly verification = signal<CustomerVerification | null>(null);
+  protected readonly verification = signal<ActiveCustomerVerification | null>(null);
   protected readonly editMode = signal(false);
   protected readonly editing = signal(false);
   protected readonly editError = signal<string | null>(null);
@@ -86,6 +91,8 @@ export class CustomerDetailPage {
   protected readonly createTicketOpen = signal(false);
   protected readonly ticketSubmitting = signal(false);
   protected readonly ticketError = signal<string | null>(null);
+  protected readonly lookupPending = signal(false);
+  protected readonly lookupError = signal<string | null>(null);
   protected readonly categories = signal<readonly Category[]>([]);
   protected readonly categoriesLoading = signal(true);
   protected readonly ticketForm = new FormGroup({
@@ -95,6 +102,12 @@ export class CustomerDetailPage {
     }),
     description: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     categoryId: new FormControl<number | null>(null, Validators.required),
+  });
+  protected readonly lookupForm = new FormGroup({
+    ticketNumber: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/^\s*TKT-[A-Z2-7]{16}\s*$/i)],
+    }),
   });
   private readonly retries = new Subject<void>();
   private readonly historyRequests = new Subject<{ page: number; pageSize: number }>();
@@ -109,11 +122,21 @@ export class CustomerDetailPage {
         switchMap((customerId) => {
           this.customerId = customerId;
           this.verification.set(null);
+          clearTimeout(this.verificationExpiryTimer);
           this.editMode.set(false);
           if (customerId === null)
             return of<DetailState>({ kind: 'error', error: new AppError('not-found', 404) });
-          return this.customers.get(customerId).pipe(
-            map((customer): DetailState => ({ kind: 'loaded', customer })),
+          return forkJoin({
+            customer: this.customers.get(customerId),
+            verification: this.customers.getCurrentVerification(customerId),
+          }).pipe(
+            map(
+              ({ customer, verification }): DetailState => ({
+                kind: 'loaded',
+                customer,
+                verification,
+              }),
+            ),
             startWith<DetailState>({ kind: 'loading' }),
             catchError((error: unknown) =>
               of<DetailState>({ kind: 'error', error: normalizeHttpError(error) }),
@@ -124,7 +147,10 @@ export class CustomerDetailPage {
       )
       .subscribe((state) => {
         this.state.set(state);
-        if (state.kind === 'loaded') this.historyRequests.next({ page: 1, pageSize: 10 });
+        if (state.kind === 'loaded') {
+          if (state.verification) this.acceptVerification(state.verification);
+          this.historyRequests.next({ page: 1, pageSize: 10 });
+        }
       });
 
     this.historyRequests
@@ -160,8 +186,14 @@ export class CustomerDetailPage {
   protected canEdit(customer: Customer): boolean {
     return customer.isActive || this.isAdmin;
   }
-  protected acceptVerification(value: CustomerVerification): void {
+  protected acceptVerification(value: ActiveCustomerVerification): void {
+    if (value.expiresAt.getTime() <= Date.now()) {
+      this.verification.set(null);
+      clearTimeout(this.verificationExpiryTimer);
+      return;
+    }
     this.verification.set(value);
+    this.lookupError.set(null);
     clearTimeout(this.verificationExpiryTimer);
     const delay = Math.max(0, value.expiresAt.getTime() - Date.now());
     this.verificationExpiryTimer = setTimeout(
@@ -172,6 +204,52 @@ export class CustomerDetailPage {
   protected verificationIsValid(): boolean {
     const value = this.verification();
     return Boolean(value && value.expiresAt.getTime() > Date.now());
+  }
+
+  protected lookupTicket(customer: Customer): void {
+    if (!this.verificationIsValid()) {
+      this.verification.set(null);
+      this.lookupError.set('Customer verification is no longer current. Verify again.');
+      return;
+    }
+    if (this.lookupForm.invalid || this.lookupPending()) {
+      this.lookupForm.markAllAsTouched();
+      return;
+    }
+    const verification = this.verification();
+    if (!verification) return;
+    this.lookupPending.set(true);
+    this.lookupError.set(null);
+    this.customers
+      .lookupTicket(
+        customer.id,
+        this.lookupForm.controls.ticketNumber.value.trim().toUpperCase(),
+        verification.id,
+      )
+      .pipe(
+        take(1),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.lookupPending.set(false)),
+      )
+      .subscribe({
+        next: (ticket) =>
+          void this.router.navigate(['/tickets', ticket.id], {
+            queryParams: { returnTo: `/customers/${customer.id}` },
+          }),
+        error: (raw: unknown) => {
+          const error = normalizeHttpError(raw);
+          if (error.code === 'CUSTOMER_VERIFICATION_INVALID') {
+            this.verification.set(null);
+            this.lookupError.set('Customer verification is no longer current. Verify again.');
+          } else if (error.kind === 'not-found') {
+            this.lookupError.set('No ticket found for this customer.');
+          } else if (error.kind === 'validation') {
+            this.lookupError.set('Enter a valid ticket number in the format TKT-…');
+          } else {
+            this.lookupError.set('The ticket lookup could not be completed. Try again.');
+          }
+        },
+      });
   }
 
   protected saveEdit(value: CustomerFormValue, customer: Customer): void {
@@ -197,7 +275,7 @@ export class CustomerDetailPage {
       )
       .subscribe({
         next: (customer) => {
-          this.state.set({ kind: 'loaded', customer });
+          this.state.update((state) => (state.kind === 'loaded' ? { ...state, customer } : state));
           this.editMode.set(false);
           this.pendingPatch = null;
         },
@@ -245,7 +323,9 @@ export class CustomerDetailPage {
         )
         .subscribe({
           next: (updated) => {
-            this.state.set({ kind: 'loaded', customer: updated });
+            this.state.update((state) =>
+              state.kind === 'loaded' ? { ...state, customer: updated } : state,
+            );
             if (!updated.isActive) {
               this.editMode.set(false);
               this.verification.set(null);

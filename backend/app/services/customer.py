@@ -24,6 +24,7 @@ from app.schemas.customer import (
     CustomerDirectoryListResponse,
     CustomerSearchRequest,
     CustomerUpdate,
+    CurrentCustomerVerification,
     CustomerVerificationCreate,
 )
 from app.utils.time import utc_now_naive
@@ -250,6 +251,19 @@ class CustomerService:
         except Exception:
             self.db.rollback()
             raise
+
+    def get_current_verification(
+        self, customer_id: int, actor: User
+    ) -> CurrentCustomerVerification | None:
+        self.get_customer(customer_id, actor)
+        verification = self.verification_repository.get_current(
+            customer_id=customer_id,
+            verified_by_user_id=actor.id,
+            now=utc_now_naive(),
+        )
+        if verification is None:
+            return None
+        return CurrentCustomerVerification.model_validate(verification)
 
     def _has_duplicate(self, data: CustomerCreate) -> bool:
         return self.customer_repository.has_possible_duplicate(

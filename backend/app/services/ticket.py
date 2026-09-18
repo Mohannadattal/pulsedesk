@@ -13,6 +13,7 @@ from app.exceptions.customer import (
     InactiveCustomerError,
 )
 from app.exceptions.ticket import (
+    CustomerTicketNotFoundError,
     InvalidTicketAssigneeError,
     InvalidTicketFilterError,
     InvalidTicketStatusTransitionError,
@@ -30,7 +31,13 @@ from app.repositories.customer_verification import CustomerVerificationRepositor
 from app.repositories.exceptions import DuplicateTicketNumberError
 from app.repositories.ticket import TicketRepository
 from app.repositories.user import UserRepository
-from app.schemas.ticket import TicketCreate, TicketListFilters, TicketListResponse
+from app.schemas.ticket import (
+    CustomerTicketLookupRequest,
+    TicketCreate,
+    TicketListFilters,
+    TicketListResponse,
+    TicketSearchRequest,
+)
 from app.services.ticket_event import TicketEventRecorder, display_name
 from app.utils.time import utc_now_naive
 
@@ -203,6 +210,60 @@ class TicketService:
             page_size=filters.page_size,
             total=total,
             total_pages=(total + filters.page_size - 1) // filters.page_size,
+        )
+
+    def lookup_customer_ticket(
+        self,
+        customer_id: int,
+        data: CustomerTicketLookupRequest,
+        actor: User,
+    ) -> Ticket:
+        if actor.role not in {UserRole.EMPLOYEE.value, UserRole.ADMIN.value}:
+            raise AuthorizationError
+        customer = self.customer_repository.get_by_id_for_update(customer_id)
+        if customer is None:
+            raise CustomerNotFoundError
+        verification = self.customer_verification_repository.get_by_id_for_update(
+            data.customer_verification_id
+        )
+        if verification is None:
+            raise CustomerVerificationNotFoundError
+        now = utc_now_naive()
+        if (
+            verification.customer_id != customer.id
+            or verification.verified_by_user_id != actor.id
+            or verification.expires_at <= now
+        ):
+            raise CustomerVerificationInvalidError
+
+        employee_scope = actor.id if actor.role == UserRole.EMPLOYEE.value else None
+        ticket = self.ticket_repository.get_customer_ticket_by_number(
+            ticket_number=data.ticket_number,
+            customer_id=customer.id,
+            employee_id=employee_scope,
+        )
+        if ticket is None:
+            raise CustomerTicketNotFoundError
+        return ticket
+
+    def search_tickets(
+        self,
+        data: TicketSearchRequest,
+        actor: User,
+    ) -> TicketListResponse:
+        self._require_support(actor)
+        tickets, total = self.ticket_repository.search(
+            kind=data.kind,
+            value=data.value,
+            page=data.page,
+            page_size=data.page_size,
+        )
+        return TicketListResponse(
+            items=tickets,
+            page=data.page,
+            page_size=data.page_size,
+            total=total,
+            total_pages=(total + data.page_size - 1) // data.page_size,
         )
 
     def update_assignment(

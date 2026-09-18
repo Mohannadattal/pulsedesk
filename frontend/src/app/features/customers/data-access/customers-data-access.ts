@@ -6,13 +6,15 @@ import { CustomerCreate } from '../../../api/generated/model/customerCreate';
 import { CustomerSearchKind } from '../../../api/generated/model/customerSearchKind';
 import { CustomerUpdate } from '../../../api/generated/model/customerUpdate';
 import { VerificationFactor } from '../../../api/generated/model/verificationFactor';
-import { mapTicket, TicketPage } from '../../tickets/domain/ticket';
+import { mapTicket, Ticket, TicketPage } from '../../tickets/domain/ticket';
 import {
   Customer,
+  ActiveCustomerVerification,
   CustomerPage,
   CustomerVerification,
   mapCustomer,
   mapCustomerSummary,
+  mapCurrentVerification,
   mapVerification,
 } from '../domain/customer';
 
@@ -49,6 +51,16 @@ export class CustomersDataAccess {
       .pipe(map(mapCustomer));
   }
 
+  getCurrentVerification(customerId: number): Observable<ActiveCustomerVerification | null> {
+    return this.api
+      .getCurrentCustomerVerification(customerId, 'body', false, { transferCache: false })
+      .pipe(
+        map((response) =>
+          response.verification ? mapCurrentVerification(response.verification) : null,
+        ),
+      );
+  }
+
   create(request: CustomerCreate): Observable<Customer> {
     return this.api
       .createCustomer(request, 'body', false, { transferCache: false })
@@ -78,6 +90,25 @@ export class CustomersDataAccess {
         transferCache: false,
       })
       .pipe(map(mapVerification));
+  }
+
+  lookupTicket(
+    customerId: number,
+    ticketNumber: string,
+    customerVerificationId: number,
+  ): Observable<Ticket> {
+    return this.api
+      .lookupCustomerTicket(
+        customerId,
+        {
+          ticket_number: ticketNumber,
+          customer_verification_id: customerVerificationId,
+        },
+        'body',
+        false,
+        { transferCache: false },
+      )
+      .pipe(map(mapTicket));
   }
 
   listTickets(customerId: number, page: number, pageSize: number): Observable<TicketPage> {

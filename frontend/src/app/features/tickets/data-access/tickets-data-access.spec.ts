@@ -7,6 +7,7 @@ import { TicketsApi } from '../../../api/generated/api/tickets.service';
 import { UsersApi } from '../../../api/generated/api/users.service';
 import { CommentVisibility } from '../../../api/generated/model/commentVisibility';
 import { TicketPriority } from '../../../api/generated/model/ticketPriority';
+import { TicketSearchKind } from '../../../api/generated/model/ticketSearchKind';
 import { TicketEventOrder } from '../../../api/generated/model/ticketEventOrder';
 import { TicketEventType } from '../../../api/generated/model/ticketEventType';
 import { TicketStatus } from '../../../api/generated/model/ticketStatus';
@@ -18,6 +19,7 @@ describe('TicketsDataAccess', () => {
   const ticketsApi = {
     createTicketComment: vi.fn(),
     listTickets: vi.fn(),
+    searchTickets: vi.fn(),
     listTicketEvents: vi.fn(),
     updateTicketAssignment: vi.fn(),
     updateTicketStatus: vi.fn(),
@@ -36,6 +38,23 @@ describe('TicketsDataAccess', () => {
         { provide: UsersApi, useValue: usersApi },
       ],
     });
+  });
+
+  it('keeps Ticket search text and pagination in the POST body', async () => {
+    ticketsApi.searchTickets.mockReturnValue(
+      of({ items: [], page: 3, page_size: 20, total: 0, total_pages: 0 }),
+    );
+
+    await firstValueFrom(
+      TestBed.inject(TicketsDataAccess).search(TicketSearchKind.TITLE, 'Outlook', 3, 20),
+    );
+
+    expect(ticketsApi.searchTickets).toHaveBeenCalledWith(
+      { kind: TicketSearchKind.TITLE, value: 'Outlook', page: 3, page_size: 20 },
+      'body',
+      false,
+      { transferCache: false },
+    );
   });
 
   it('retrieves and maps every active Agent page without email', async () => {

@@ -1,9 +1,10 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
@@ -23,6 +24,7 @@ import {
 } from 'rxjs';
 
 import { TicketPriority } from '../../../api/generated/model/ticketPriority';
+import { TicketSearchKind } from '../../../api/generated/model/ticketSearchKind';
 import { TicketStatus } from '../../../api/generated/model/ticketStatus';
 import { UserRole } from '../../../api/generated/model/userRole';
 import { AuthSessionStore } from '../../../platform/auth/auth-session.store';
@@ -30,7 +32,6 @@ import { AppError, normalizeHttpError } from '../../../platform/http/app-error';
 import { PageMessageComponent } from '../../../shared/ui/page-message/page-message.component';
 import { LocalDateTimePipe } from '../../../shared/util/local-date-time.pipe';
 import { TicketsDataAccess } from '../data-access/tickets-data-access';
-import { Category } from '../domain/category';
 import {
   assignmentFilterState,
   assignmentFilterValue,
@@ -46,18 +47,26 @@ import {
   withFilterChange,
 } from '../domain/ticket-filters';
 import { TicketPage } from '../domain/ticket';
-import { AgentDirectoryEntry } from '../domain/user-directory';
 
 type TicketListState =
+  | { readonly kind: 'idle' }
   | { readonly kind: 'loading' }
   | { readonly kind: 'refreshing'; readonly page: TicketPage; readonly filters: TicketFilters }
   | { readonly kind: 'loaded'; readonly page: TicketPage; readonly filters: TicketFilters }
   | { readonly kind: 'error'; readonly error: AppError; readonly filters: TicketFilters };
 
-interface ReferenceState<T> {
-  readonly items: readonly T[];
-  readonly status: 'loading' | 'loaded' | 'failed';
+interface TicketSearchCriteria {
+  readonly kind: TicketSearchKind;
+  readonly value: string;
+  readonly page: number;
+  readonly pageSize: number;
 }
+
+type TicketSearchState =
+  | { readonly kind: 'idle' }
+  | { readonly kind: 'loading'; readonly criteria: TicketSearchCriteria }
+  | { readonly kind: 'loaded'; readonly page: TicketPage; readonly criteria: TicketSearchCriteria }
+  | { readonly kind: 'error'; readonly error: AppError; readonly criteria: TicketSearchCriteria };
 
 interface CanonicalFilterState {
   readonly filters: TicketFilters;
@@ -70,6 +79,7 @@ interface CanonicalFilterState {
     LocalDateTimePipe,
     MatButtonModule,
     MatFormFieldModule,
+    MatInputModule,
     MatPaginatorModule,
     MatProgressBarModule,
     MatSelectModule,
@@ -87,14 +97,17 @@ export class TicketListPage {
   private readonly router = inject(Router);
   private readonly tickets = inject(TicketsDataAccess);
   private readonly retryRequests = new Subject<void>();
+  private readonly searchRequests = new Subject<TicketSearchCriteria | null>();
 
   protected readonly session = inject(AuthSessionStore);
   protected readonly statuses = TICKET_STATUSES;
   protected readonly priorities = TICKET_PRIORITIES;
   protected readonly pageSizes = PAGE_SIZE_OPTIONS;
+  protected readonly searchKinds = [TicketSearchKind.TICKET_NUMBER, TicketSearchKind.TITLE];
   protected readonly isSupport = [UserRole.AGENT, UserRole.ADMIN].includes(
     this.session.currentUser()?.role as UserRole,
   );
+  protected readonly hasOperationalQueue = !this.isSupport;
 
   private readonly initialFilters = this.scopeFilters(
     parseTicketFilters(this.route.snapshot.queryParamMap),
@@ -115,62 +128,22 @@ export class TicketListPage {
       { nonNullable: true },
     ),
   });
-
-  private readonly categoryState = (this.isSupport
-    ? this.tickets.listActiveCategories().pipe(
-        map((items): ReferenceState<Category> => ({ items, status: 'loaded' })),
-        startWith<ReferenceState<Category>>({ items: [], status: 'loading' }),
-        catchError(() => of<ReferenceState<Category>>({ items: [], status: 'failed' })),
-      )
-    : of<ReferenceState<Category>>({ items: [], status: 'loaded' })
-  ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
-
-  private readonly agentState = (this.isSupport
-    ? this.tickets.listActiveAgents().pipe(
-        map((items): ReferenceState<AgentDirectoryEntry> => ({ items, status: 'loaded' })),
-        startWith<ReferenceState<AgentDirectoryEntry>>({ items: [], status: 'loading' }),
-        catchError(() => of<ReferenceState<AgentDirectoryEntry>>({ items: [], status: 'failed' })),
-      )
-    : of<ReferenceState<AgentDirectoryEntry>>({ items: [], status: 'loaded' })
-  ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
-
-  protected readonly categories = toSignal(this.categoryState, {
-    initialValue: { items: [], status: 'loading' },
+  protected readonly searchForm = new FormGroup({
+    kind: new FormControl<TicketSearchKind>(TicketSearchKind.TICKET_NUMBER, {
+      nonNullable: true,
+    }),
+    value: new FormControl('', { nonNullable: true }),
   });
+  protected readonly searchState = signal<TicketSearchState>({ kind: 'idle' });
+  protected readonly searchValidationError = signal<string | null>(null);
+  private executedSearch: Omit<TicketSearchCriteria, 'page'> | null = null;
 
-  protected readonly agents = toSignal(this.agentState, {
-    initialValue: { items: [], status: 'loading' },
-  });
-
-  private readonly filters = combineLatest([
-    this.route.queryParamMap,
-    this.categoryState,
-    this.agentState,
-  ]).pipe(
-    map(([params, categories, agents]): CanonicalFilterState => {
+  private readonly filters = this.route.queryParamMap.pipe(
+    map((params): CanonicalFilterState => {
       const parsed = this.scopeFilters(parseTicketFilters(params));
-      const categoryIsStale =
-        this.isSupport &&
-        parsed.categoryId !== undefined &&
-        categories.status === 'loaded' &&
-        !categories.items.some((category) => category.id === parsed.categoryId);
-      const agentIsStale =
-        this.isSupport &&
-        parsed.assignedToId !== undefined &&
-        agents.status === 'loaded' &&
-        !agents.items.some((agent) => agent.id === parsed.assignedToId);
-      const filters =
-        categoryIsStale || agentIsStale
-          ? {
-              ...parsed,
-              categoryId: categoryIsStale ? undefined : parsed.categoryId,
-              assignedToId: agentIsStale ? undefined : parsed.assignedToId,
-              page: 1,
-            }
-          : parsed;
       return {
-        filters,
-        urlIsCanonical: this.hasCanonicalQuery(params, ticketFiltersToQueryParams(filters)),
+        filters: parsed,
+        urlIsCanonical: this.hasCanonicalQuery(params, ticketFiltersToQueryParams(parsed)),
       };
     }),
     distinctUntilChanged(
@@ -196,35 +169,125 @@ export class TicketListPage {
     shareReplay({ bufferSize: 1, refCount: true }),
   );
 
-  private readonly requestEvents = combineLatest([
-    this.filters,
-    this.retryRequests.pipe(startWith(undefined)),
-  ]).pipe(
-    map(([filters]) => filters),
-    switchMap((filters) =>
-      this.tickets.list(filters).pipe(
-        map((page): TicketListState => ({ kind: 'loaded', page, filters })),
-        startWith<TicketListState>({ kind: 'loading' }),
-        catchError((error: unknown) =>
-          of<TicketListState>({ kind: 'error', error: normalizeHttpError(error), filters }),
+  private readonly requestEvents = (this.hasOperationalQueue
+    ? combineLatest([this.filters, this.retryRequests.pipe(startWith(undefined))]).pipe(
+        map(([filters]) => filters),
+        switchMap((filters) =>
+          this.tickets.list(filters).pipe(
+            map((page): TicketListState => ({ kind: 'loaded', page, filters })),
+            startWith<TicketListState>({ kind: 'loading' }),
+            catchError((error: unknown) =>
+              of<TicketListState>({
+                kind: 'error',
+                error: normalizeHttpError(error),
+                filters,
+              }),
+            ),
+          ),
         ),
-      ),
-    ),
-    scan<TicketListState, TicketListState>((previous, current) => {
-      if (current.kind !== 'loading') {
-        return current;
-      }
-      if (previous.kind === 'loaded' || previous.kind === 'refreshing') {
-        return { kind: 'refreshing', page: previous.page, filters: previous.filters };
-      }
-      return current;
-    }),
-    shareReplay({ bufferSize: 1, refCount: true }),
-  );
+        scan<TicketListState, TicketListState>((previous, current) => {
+          if (current.kind !== 'loading') {
+            return current;
+          }
+          if (previous.kind === 'loaded' || previous.kind === 'refreshing') {
+            return { kind: 'refreshing', page: previous.page, filters: previous.filters };
+          }
+          return current;
+        }),
+      )
+    : of<TicketListState>({ kind: 'idle' })
+  ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
 
   protected readonly state = toSignal(this.requestEvents, {
     initialValue: { kind: 'loading' } as TicketListState,
   });
+
+  constructor() {
+    this.searchRequests
+      .pipe(
+        switchMap((criteria) => {
+          if (criteria === null) return of<TicketSearchState>({ kind: 'idle' });
+          return this.tickets
+            .search(criteria.kind, criteria.value, criteria.page, criteria.pageSize)
+            .pipe(
+              map((page): TicketSearchState => ({ kind: 'loaded', page, criteria })),
+              startWith<TicketSearchState>({ kind: 'loading', criteria }),
+              catchError((error: unknown) =>
+                of<TicketSearchState>({
+                  kind: 'error',
+                  error: normalizeHttpError(error),
+                  criteria,
+                }),
+              ),
+            );
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe((state) => {
+        if (state.kind === 'loaded') {
+          this.executedSearch = {
+            kind: state.criteria.kind,
+            value: state.criteria.value,
+            pageSize: state.criteria.pageSize,
+          };
+          const draft = this.searchForm.getRawValue();
+          const normalizedDraft =
+            draft.kind === TicketSearchKind.TICKET_NUMBER
+              ? draft.value.trim().toUpperCase()
+              : draft.value.trim();
+          if (draft.kind === state.criteria.kind && normalizedDraft === state.criteria.value) {
+            this.searchForm.controls.value.setValue('');
+          }
+          if (
+            state.criteria.kind === TicketSearchKind.TICKET_NUMBER &&
+            state.page.items.length === 1
+          ) {
+            void this.router.navigate(['/tickets', state.page.items[0].id]);
+          }
+        }
+        this.searchState.set(state);
+      });
+  }
+
+  protected executeSearch(): void {
+    const draft = this.searchForm.getRawValue();
+    const value = draft.value.trim();
+    if (!value) {
+      this.searchValidationError.set('Enter a search value.');
+      return;
+    }
+    if (draft.kind === TicketSearchKind.TICKET_NUMBER && !/^TKT-[A-Z2-7]{16}$/i.test(value)) {
+      this.searchValidationError.set('Enter a valid ticket number in the format TKT-…');
+      return;
+    }
+    this.searchValidationError.set(null);
+    this.searchRequests.next({
+      kind: draft.kind,
+      value: draft.kind === TicketSearchKind.TICKET_NUMBER ? value.toUpperCase() : value,
+      page: 1,
+      pageSize: 20,
+    });
+  }
+
+  protected clearSearch(): void {
+    this.executedSearch = null;
+    this.searchValidationError.set(null);
+    this.searchForm.reset({ kind: TicketSearchKind.TICKET_NUMBER, value: '' });
+    this.searchRequests.next(null);
+  }
+
+  protected changeSearchPage(event: PageEvent): void {
+    if (!this.executedSearch) return;
+    this.searchRequests.next({
+      ...this.executedSearch,
+      page: event.pageSize === this.executedSearch.pageSize ? event.pageIndex + 1 : 1,
+      pageSize: event.pageSize,
+    });
+  }
+
+  protected searchKindLabel(kind: TicketSearchKind): string {
+    return kind === TicketSearchKind.TICKET_NUMBER ? 'Ticket number' : 'Title';
+  }
 
   protected applyFilters(): void {
     const controls = this.filterForm.getRawValue();

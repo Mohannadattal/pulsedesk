@@ -7,6 +7,7 @@ import { UsersApi } from '../../../api/generated/api/users.service';
 import { CommentVisibility } from '../../../api/generated/model/commentVisibility';
 import { TicketCreate } from '../../../api/generated/model/ticketCreate';
 import { TicketPriority } from '../../../api/generated/model/ticketPriority';
+import { TicketSearchKind } from '../../../api/generated/model/ticketSearchKind';
 import { TicketStatus } from '../../../api/generated/model/ticketStatus';
 import { TicketEventOrder } from '../../../api/generated/model/ticketEventOrder';
 import { UserRole } from '../../../api/generated/model/userRole';
@@ -81,15 +82,20 @@ export class TicketsDataAccess {
         false,
         { transferCache: false },
       )
-      .pipe(
-        map((response) => ({
-          items: response.items.map(mapTicket),
-          page: response.page,
-          pageSize: response.page_size,
-          total: response.total,
-          totalPages: response.total_pages,
-        })),
-      );
+      .pipe(map(mapTicketPage));
+  }
+
+  search(
+    kind: TicketSearchKind,
+    value: string,
+    page: number,
+    pageSize: number,
+  ): Observable<TicketPage> {
+    return this.ticketsApi
+      .searchTickets({ kind, value, page, page_size: pageSize }, 'body', false, {
+        transferCache: false,
+      })
+      .pipe(map(mapTicketPage));
   }
 
   updateAssignment(ticketId: number, assignedToId: number | null): Observable<Ticket> {
@@ -173,4 +179,20 @@ export class TicketsDataAccess {
       })
       .pipe(map(mapTicketComment));
   }
+}
+
+function mapTicketPage(response: {
+  readonly items: Parameters<typeof mapTicket>[0][];
+  readonly page: number;
+  readonly page_size: number;
+  readonly total: number;
+  readonly total_pages: number;
+}): TicketPage {
+  return {
+    items: response.items.map(mapTicket),
+    page: response.page,
+    pageSize: response.page_size,
+    total: response.total,
+    totalPages: response.total_pages,
+  };
 }

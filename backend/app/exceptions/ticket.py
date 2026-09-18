@@ -6,6 +6,10 @@ class TicketNotFoundError(Exception):
         super().__init__(f"Ticket with ID '{ticket_id}' was not found.")
 
 
+class CustomerTicketNotFoundError(Exception):
+    """Safe result for a missing, inaccessible, or differently-owned ticket."""
+
+
 class InvalidTicketStatusTransitionError(Exception):
     def __init__(self, current: str, requested: TicketStatus) -> None:
         super().__init__(
@@ -15,9 +19,7 @@ class InvalidTicketStatusTransitionError(Exception):
 
 class InvalidTicketAssigneeError(Exception):
     def __init__(self, user_id: int) -> None:
-        super().__init__(
-            f"User with ID '{user_id}' is not an active ticket assignee."
-        )
+        super().__init__(f"User with ID '{user_id}' is not an active ticket assignee.")
 
 
 class InvalidTicketFilterError(Exception):

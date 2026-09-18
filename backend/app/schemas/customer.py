@@ -520,3 +520,18 @@ class CustomerVerificationResponse(BaseModel):
     factors: list[VerificationFactor]
     verified_at: UtcDateTime
     expires_at: UtcDateTime
+
+
+class CurrentCustomerVerification(BaseModel):
+    """Safe projection for restoring the current actor's verification."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    customer_id: int
+    verified_at: UtcDateTime
+    expires_at: UtcDateTime
+
+
+class CurrentCustomerVerificationResponse(BaseModel):
+    verification: CurrentCustomerVerification | None

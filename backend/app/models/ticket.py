@@ -74,6 +74,10 @@ class Ticket(Base):
             "ix_tickets_customer_verification_id",
             "customer_verification_id",
         ),
+        Index(
+            "ix_tickets_title",
+            "title",
+        ),
     )
 
     id: Mapped[int] = mapped_column(

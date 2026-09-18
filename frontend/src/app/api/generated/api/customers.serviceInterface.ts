@@ -11,21 +11,25 @@ import { HttpHeaders } from '@angular/common/http';
 
 import { Observable } from 'rxjs';
 
+import { CurrentCustomerVerificationResponse } from '../model/models';
 import { CustomerActivationUpdate } from '../model/models';
 import { CustomerCreate } from '../model/models';
 import { CustomerDirectoryListResponse } from '../model/models';
 import { CustomerProfileResponse } from '../model/models';
 import { CustomerSearchRequest } from '../model/models';
+import { CustomerTicketLookupRequest } from '../model/models';
 import { CustomerUpdate } from '../model/models';
 import { CustomerVerificationCreate } from '../model/models';
 import { CustomerVerificationResponse } from '../model/models';
 import { ErrorResponse } from '../model/models';
 import { Response422CreateCustomerVerification } from '../model/models';
 import { Response422ListCustomerTickets } from '../model/models';
+import { Response422LookupCustomerTicket } from '../model/models';
 import { Response422SearchCustomers } from '../model/models';
 import { Response422UpdateCustomer } from '../model/models';
 import { TicketListResponse } from '../model/models';
 import { TicketPriority } from '../model/models';
+import { TicketResponse } from '../model/models';
 import { TicketStatus } from '../model/models';
 import { ValidationErrorResponse } from '../model/models';
 
@@ -56,6 +60,16 @@ export interface CustomersApiInterface {
     customerVerificationCreate: CustomerVerificationCreate,
     extraHttpRequestParams?: any,
   ): Observable<CustomerVerificationResponse>;
+
+  /**
+   * Get Current Customer Verification
+   *
+   * @param customerId
+   */
+  getCurrentCustomerVerification(
+    customerId: number,
+    extraHttpRequestParams?: any,
+  ): Observable<CurrentCustomerVerificationResponse>;
 
   /**
    * Get Customer
@@ -106,6 +120,18 @@ export interface CustomersApiInterface {
     pageSize?: number,
     extraHttpRequestParams?: any,
   ): Observable<CustomerDirectoryListResponse>;
+
+  /**
+   * Lookup Customer Ticket
+   *
+   * @param customerId
+   * @param customerTicketLookupRequest
+   */
+  lookupCustomerTicket(
+    customerId: number,
+    customerTicketLookupRequest: CustomerTicketLookupRequest,
+    extraHttpRequestParams?: any,
+  ): Observable<TicketResponse>;
 
   /**
    * Search Customers

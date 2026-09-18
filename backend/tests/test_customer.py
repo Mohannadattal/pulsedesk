@@ -544,6 +544,128 @@ class CustomerServiceTests(CustomerTestCase):
                     actor,
                 )
 
+    def test_current_verification_returns_newest_unexpired_for_customer_and_actor(
+        self,
+    ) -> None:
+        with self.session_factory() as db:
+            customer = self.create(db)
+            other_customer = self.create(
+                db,
+                email="other-verification@example.net",
+                first_name="Other",
+            )
+            employee = db.get(User, 1)
+            admin = db.get(User, 3)
+            assert employee is not None and admin is not None
+            records = [
+                CustomerVerification(
+                    customer_id=customer.id,
+                    verified_by_user_id=employee.id,
+                    factors=["DATE_OF_BIRTH", "POSTAL_CODE"],
+                    verified_at=self.now - timedelta(minutes=15),
+                    expires_at=self.now + timedelta(minutes=15),
+                ),
+                CustomerVerification(
+                    customer_id=customer.id,
+                    verified_by_user_id=employee.id,
+                    factors=["DATE_OF_BIRTH", "POSTAL_CODE"],
+                    verified_at=self.now - timedelta(minutes=5),
+                    expires_at=self.now + timedelta(minutes=25),
+                ),
+                CustomerVerification(
+                    customer_id=customer.id,
+                    verified_by_user_id=employee.id,
+                    factors=["DATE_OF_BIRTH", "POSTAL_CODE"],
+                    verified_at=self.now - timedelta(hours=1),
+                    expires_at=self.now,
+                ),
+                CustomerVerification(
+                    customer_id=customer.id,
+                    verified_by_user_id=admin.id,
+                    factors=["DATE_OF_BIRTH", "POSTAL_CODE"],
+                    verified_at=self.now - timedelta(minutes=1),
+                    expires_at=self.now + timedelta(minutes=29),
+                ),
+                CustomerVerification(
+                    customer_id=other_customer.id,
+                    verified_by_user_id=employee.id,
+                    factors=["DATE_OF_BIRTH", "POSTAL_CODE"],
+                    verified_at=self.now - timedelta(minutes=1),
+                    expires_at=self.now + timedelta(minutes=29),
+                ),
+            ]
+            db.add_all(records)
+            db.commit()
+
+            with patch("app.services.customer.utc_now_naive", return_value=self.now):
+                current = self.service(db).get_current_verification(
+                    customer.id, employee
+                )
+
+            assert current is not None
+            self.assertEqual(current.id, records[1].id)
+            self.assertEqual(current.customer_id, customer.id)
+            self.assertEqual(current.expires_at, records[1].expires_at)
+            self.assertEqual(
+                set(current.model_dump()),
+                {"id", "customer_id", "verified_at", "expires_at"},
+            )
+
+    def test_current_verification_returns_empty_for_expired_foreign_or_other_customer(
+        self,
+    ) -> None:
+        with self.session_factory() as db:
+            customer = self.create(db)
+            other_customer = self.create(
+                db,
+                email="other-current@example.net",
+                first_name="Other",
+            )
+            employee = db.get(User, 1)
+            admin = db.get(User, 3)
+            assert employee is not None and admin is not None
+            db.add_all(
+                [
+                    CustomerVerification(
+                        customer_id=customer.id,
+                        verified_by_user_id=employee.id,
+                        factors=["DATE_OF_BIRTH", "POSTAL_CODE"],
+                        verified_at=self.now - timedelta(hours=1),
+                        expires_at=self.now,
+                    ),
+                    CustomerVerification(
+                        customer_id=customer.id,
+                        verified_by_user_id=admin.id,
+                        factors=["DATE_OF_BIRTH", "POSTAL_CODE"],
+                        verified_at=self.now - timedelta(minutes=1),
+                        expires_at=self.now + timedelta(minutes=29),
+                    ),
+                    CustomerVerification(
+                        customer_id=other_customer.id,
+                        verified_by_user_id=employee.id,
+                        factors=["DATE_OF_BIRTH", "POSTAL_CODE"],
+                        verified_at=self.now - timedelta(minutes=1),
+                        expires_at=self.now + timedelta(minutes=29),
+                    ),
+                ]
+            )
+            db.commit()
+
+            with patch("app.services.customer.utc_now_naive", return_value=self.now):
+                current = self.service(db).get_current_verification(
+                    customer.id, employee
+                )
+
+            self.assertIsNone(current)
+
+    def test_current_verification_preserves_customer_role_authorization(self) -> None:
+        with self.session_factory() as db:
+            customer = self.create(db)
+            agent = db.get(User, 2)
+            assert agent is not None
+            with self.assertRaises(AuthorizationError):
+                self.service(db).get_current_verification(customer.id, agent)
+
 
 class CustomerTicketIntegrationTests(CustomerTestCase):
     def test_customer_ticket_projection_verification_and_audit_privacy(self) -> None:
@@ -866,6 +988,17 @@ class CustomerOpenApiTests(unittest.TestCase):
         self.assertIn("Customer", responses["404"]["description"])
         self.assertIn("verification", responses["404"]["description"])
         self.assertIn("Customer", responses["409"]["description"])
+
+    def test_current_verification_contract_excludes_actor_and_factor_values(
+        self,
+    ) -> None:
+        schemas = fastapi_app.openapi()["components"]["schemas"]
+        properties = schemas["CurrentCustomerVerification"]["properties"]
+        self.assertEqual(
+            set(properties), {"id", "customer_id", "verified_at", "expires_at"}
+        )
+        self.assertNotIn("factors", properties)
+        self.assertNotIn("verified_by_user_id", properties)
 
 
 if __name__ == "__main__":

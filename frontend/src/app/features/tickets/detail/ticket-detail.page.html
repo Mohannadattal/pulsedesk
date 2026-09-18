@@ -1,4 +1,4 @@
-<a class="back-link" routerLink="/tickets">← Back to tickets</a>
+<a class="back-link" [routerLink]="backLink">← Back</a>
 
 @let current = state();
 @if (terminalError(); as error) {

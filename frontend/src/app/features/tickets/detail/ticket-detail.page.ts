@@ -48,6 +48,9 @@ export class TicketDetailPage {
   private readonly retryRequests = new Subject<void>();
   private readonly activity = viewChild(TicketActivityComponent);
   protected readonly session = inject(AuthSessionStore);
+  protected readonly backLink = customerReturnLink(
+    this.route.snapshot?.queryParamMap?.get('returnTo') ?? null,
+  );
   protected readonly terminalError = signal<AppError | null>(null);
   protected readonly state = signal<TicketDetailState>({ kind: 'loading' });
   private authorityVersion = 0;
@@ -173,4 +176,8 @@ export class TicketDetailPage {
     const parsed = Number(value);
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
   }
+}
+
+function customerReturnLink(value: string | null): string {
+  return value && /^\/customers\/\d+$/.test(value) ? value : '/tickets';
 }

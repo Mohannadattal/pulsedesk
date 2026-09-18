@@ -35,6 +35,45 @@ h1 {
   flex: 0 0 auto;
 }
 
+.ticket-search {
+  margin-bottom: var(--pd-space-4);
+  padding: var(--pd-space-4);
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-surface);
+  background: var(--pd-color-surface);
+}
+
+.ticket-search h2 {
+  margin: 0;
+}
+
+.ticket-search > div p {
+  margin: var(--pd-space-1) 0 0;
+  color: var(--pd-color-text-muted);
+  font-size: 0.8rem;
+}
+
+.ticket-search form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pd-space-3);
+  margin-top: var(--pd-space-3);
+}
+
+.ticket-search mat-form-field:first-child {
+  width: min(12rem, 100%);
+}
+
+.ticket-search mat-form-field:nth-child(2) {
+  width: min(28rem, 100%);
+}
+
+.search-error {
+  color: var(--pd-color-danger);
+  font-size: 0.8rem;
+}
+
 .filters {
   margin-bottom: var(--pd-space-4);
   padding: var(--pd-space-3);
@@ -269,6 +308,16 @@ mat-paginator {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .ticket-search form {
+    display: grid;
+    grid-template-columns: 1fr 2fr auto auto;
+  }
+
+  .ticket-search mat-form-field:first-child,
+  .ticket-search mat-form-field:nth-child(2) {
+    width: 100%;
+  }
+
   .filters mat-form-field {
     width: 100%;
   }
@@ -327,6 +376,10 @@ mat-paginator {
 
 @media (max-width: 34rem) {
   .filters form {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-search form {
     grid-template-columns: 1fr;
   }
 

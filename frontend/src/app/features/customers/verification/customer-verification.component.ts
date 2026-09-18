@@ -16,7 +16,7 @@ import { finalize, take } from 'rxjs';
 import { VerificationFactor } from '../../../api/generated/model/verificationFactor';
 import { AuthSessionStore } from '../../../platform/auth/auth-session.store';
 import { normalizeHttpError } from '../../../platform/http/app-error';
-import { Customer, CustomerVerification } from '../domain/customer';
+import { ActiveCustomerVerification, Customer, CustomerVerification } from '../domain/customer';
 import { CustomersDataAccess } from '../data-access/customers-data-access';
 
 interface FactorOption {
@@ -39,7 +39,7 @@ export class CustomerVerificationComponent {
   private readonly destroyRef = inject(DestroyRef);
   protected readonly session = inject(AuthSessionStore);
   readonly customer = input.required<Customer>();
-  readonly verification = input<CustomerVerification | null>(null);
+  readonly verification = input<ActiveCustomerVerification | null>(null);
   readonly verified = output<CustomerVerification>();
   protected readonly selected = signal<readonly VerificationFactor[]>([]);
   protected readonly revealed = signal<readonly VerificationFactor[]>([]);

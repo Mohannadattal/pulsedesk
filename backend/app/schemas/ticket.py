@@ -1,3 +1,5 @@
+import re
+from enum import StrEnum
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -11,6 +13,51 @@ from app.schemas.user import UserReference
 
 class TicketMutationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+TICKET_NUMBER_PATTERN = re.compile(r"^TKT-[A-Z2-7]{16}$")
+
+
+def normalize_ticket_number(value: str) -> str:
+    normalized = value.strip().upper()
+    if not TICKET_NUMBER_PATTERN.fullmatch(normalized):
+        raise ValueError(
+            "Ticket number must use the format TKT- followed by 16 characters."
+        )
+    return normalized
+
+
+class TicketSearchKind(StrEnum):
+    TICKET_NUMBER = "TICKET_NUMBER"
+    TITLE = "TITLE"
+
+
+class CustomerTicketLookupRequest(TicketMutationRequest):
+    ticket_number: str
+    customer_verification_id: int = Field(gt=0)
+
+    @field_validator("ticket_number", mode="before")
+    @classmethod
+    def normalize_number(cls, value: object) -> object:
+        return normalize_ticket_number(value) if isinstance(value, str) else value
+
+
+class TicketSearchRequest(TicketMutationRequest):
+    kind: TicketSearchKind
+    value: str = Field(min_length=1, max_length=200)
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=100)
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def strip_value(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def validate_kind_value(self) -> Self:
+        if self.kind == TicketSearchKind.TICKET_NUMBER:
+            self.value = normalize_ticket_number(self.value)
+        return self
 
 
 class TicketCreate(TicketMutationRequest):

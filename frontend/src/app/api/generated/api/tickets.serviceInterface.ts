@@ -27,6 +27,7 @@ import { TicketListResponse } from '../model/models';
 import { TicketPriority } from '../model/models';
 import { TicketPriorityUpdate } from '../model/models';
 import { TicketResponse } from '../model/models';
+import { TicketSearchRequest } from '../model/models';
 import { TicketStatus } from '../model/models';
 import { TicketStatusUpdate } from '../model/models';
 import { ValidationErrorResponse } from '../model/models';
@@ -119,6 +120,16 @@ export interface TicketsApiInterface {
     unassigned?: boolean,
     page?: number,
     pageSize?: number,
+    extraHttpRequestParams?: any,
+  ): Observable<TicketListResponse>;
+
+  /**
+   * Search Tickets
+   *
+   * @param ticketSearchRequest
+   */
+  searchTickets(
+    ticketSearchRequest: TicketSearchRequest,
     extraHttpRequestParams?: any,
   ): Observable<TicketListResponse>;
 

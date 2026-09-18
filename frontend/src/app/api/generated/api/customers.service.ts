@@ -23,6 +23,8 @@ import { CustomHttpParameterCodec } from '../encoder';
 import { Observable } from 'rxjs';
 
 // @ts-ignore
+import { CurrentCustomerVerificationResponse } from '../model/currentCustomerVerificationResponse';
+// @ts-ignore
 import { CustomerActivationUpdate } from '../model/customerActivationUpdate';
 // @ts-ignore
 import { CustomerCreate } from '../model/customerCreate';
@@ -32,6 +34,8 @@ import { CustomerDirectoryListResponse } from '../model/customerDirectoryListRes
 import { CustomerProfileResponse } from '../model/customerProfileResponse';
 // @ts-ignore
 import { CustomerSearchRequest } from '../model/customerSearchRequest';
+// @ts-ignore
+import { CustomerTicketLookupRequest } from '../model/customerTicketLookupRequest';
 // @ts-ignore
 import { CustomerUpdate } from '../model/customerUpdate';
 // @ts-ignore
@@ -45,6 +49,8 @@ import { Response422CreateCustomerVerification } from '../model/response422Creat
 // @ts-ignore
 import { Response422ListCustomerTickets } from '../model/response422ListCustomerTickets';
 // @ts-ignore
+import { Response422LookupCustomerTicket } from '../model/response422LookupCustomerTicket';
+// @ts-ignore
 import { Response422SearchCustomers } from '../model/response422SearchCustomers';
 // @ts-ignore
 import { Response422UpdateCustomer } from '../model/response422UpdateCustomer';
@@ -52,6 +58,8 @@ import { Response422UpdateCustomer } from '../model/response422UpdateCustomer';
 import { TicketListResponse } from '../model/ticketListResponse';
 // @ts-ignore
 import { TicketPriority } from '../model/ticketPriority';
+// @ts-ignore
+import { TicketResponse } from '../model/ticketResponse';
 // @ts-ignore
 import { TicketStatus } from '../model/ticketStatus';
 // @ts-ignore
@@ -289,6 +297,106 @@ export class CustomersApi extends BaseService implements CustomersApiInterface {
       {
         context: localVarHttpContext,
         body: customerVerificationCreate,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        transferCache: localVarTransferCache,
+        reportProgress: reportProgress,
+      },
+    );
+  }
+
+  /**
+   * Get Current Customer Verification
+   * @param customerId
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public getCurrentCustomerVerification(
+    customerId: number,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<CurrentCustomerVerificationResponse>;
+  public getCurrentCustomerVerification(
+    customerId: number,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpResponse<CurrentCustomerVerificationResponse>>;
+  public getCurrentCustomerVerification(
+    customerId: number,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpEvent<CurrentCustomerVerificationResponse>>;
+  public getCurrentCustomerVerification(
+    customerId: number,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<any> {
+    if (customerId === null || customerId === undefined) {
+      throw new Error(
+        'Required parameter customerId was null or undefined when calling getCurrentCustomerVerification.',
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (HTTPBearer) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'HTTPBearer',
+      'Authorization',
+      localVarHeaders,
+      'Bearer ',
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+    }
+
+    const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/customers/${this.configuration.encodeParam({ name: 'customerId', value: customerId, in: 'path', style: 'simple', explode: false, dataType: 'number', dataFormat: undefined })}/verifications/current`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<CurrentCustomerVerificationResponse>(
+      'get',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
         responseType: <any>responseType_,
         ...(withCredentials ? { withCredentials } : {}),
         headers: localVarHeaders,
@@ -682,6 +790,121 @@ export class CustomersApi extends BaseService implements CustomersApiInterface {
         reportProgress: reportProgress,
       },
     );
+  }
+
+  /**
+   * Lookup Customer Ticket
+   * @param customerId
+   * @param customerTicketLookupRequest
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public lookupCustomerTicket(
+    customerId: number,
+    customerTicketLookupRequest: CustomerTicketLookupRequest,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<TicketResponse>;
+  public lookupCustomerTicket(
+    customerId: number,
+    customerTicketLookupRequest: CustomerTicketLookupRequest,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpResponse<TicketResponse>>;
+  public lookupCustomerTicket(
+    customerId: number,
+    customerTicketLookupRequest: CustomerTicketLookupRequest,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<HttpEvent<TicketResponse>>;
+  public lookupCustomerTicket(
+    customerId: number,
+    customerTicketLookupRequest: CustomerTicketLookupRequest,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    },
+  ): Observable<any> {
+    if (customerId === null || customerId === undefined) {
+      throw new Error(
+        'Required parameter customerId was null or undefined when calling lookupCustomerTicket.',
+      );
+    }
+    if (customerTicketLookupRequest === null || customerTicketLookupRequest === undefined) {
+      throw new Error(
+        'Required parameter customerTicketLookupRequest was null or undefined when calling lookupCustomerTicket.',
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (HTTPBearer) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'HTTPBearer',
+      'Authorization',
+      localVarHeaders,
+      'Bearer ',
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+    }
+
+    const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    // to determine the Content-Type header
+    const consumes: string[] = ['application/json'];
+    const httpContentTypeSelected: string | undefined =
+      this.configuration.selectHeaderContentType(consumes);
+    if (httpContentTypeSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+    }
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/customers/${this.configuration.encodeParam({ name: 'customerId', value: customerId, in: 'path', style: 'simple', explode: false, dataType: 'number', dataFormat: undefined })}/tickets/lookup`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<TicketResponse>('post', `${basePath}${localVarPath}`, {
+      context: localVarHttpContext,
+      body: customerTicketLookupRequest,
+      responseType: <any>responseType_,
+      ...(withCredentials ? { withCredentials } : {}),
+      headers: localVarHeaders,
+      observe: observe,
+      transferCache: localVarTransferCache,
+      reportProgress: reportProgress,
+    });
   }
 
   /**

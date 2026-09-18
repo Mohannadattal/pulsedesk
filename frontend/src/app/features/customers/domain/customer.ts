@@ -1,4 +1,5 @@
 import { CustomerDirectoryResponse } from '../../../api/generated/model/customerDirectoryResponse';
+import { CurrentCustomerVerification } from '../../../api/generated/model/currentCustomerVerification';
 import { CustomerProfileResponse } from '../../../api/generated/model/customerProfileResponse';
 import { CustomerVerificationResponse } from '../../../api/generated/model/customerVerificationResponse';
 import { VerificationFactor } from '../../../api/generated/model/verificationFactor';
@@ -34,13 +35,16 @@ export interface CustomerPage {
   readonly totalPages: number;
 }
 
-export interface CustomerVerification {
+export interface ActiveCustomerVerification {
   readonly id: number;
   readonly customerId: number;
-  readonly verifiedByUserId: number;
-  readonly factors: readonly VerificationFactor[];
   readonly verifiedAt: Date;
   readonly expiresAt: Date;
+}
+
+export interface CustomerVerification extends ActiveCustomerVerification {
+  readonly verifiedByUserId: number;
+  readonly factors: readonly VerificationFactor[];
 }
 
 export function mapCustomerSummary(dto: CustomerDirectoryResponse): CustomerSummary {
@@ -76,6 +80,17 @@ export function mapVerification(dto: CustomerVerificationResponse): CustomerVeri
     customerId: dto.customer_id,
     verifiedByUserId: dto.verified_by_user_id,
     factors: dto.factors,
+    verifiedAt: parseUtcTimestamp(dto.verified_at),
+    expiresAt: parseUtcTimestamp(dto.expires_at),
+  };
+}
+
+export function mapCurrentVerification(
+  dto: CurrentCustomerVerification,
+): ActiveCustomerVerification {
+  return {
+    id: dto.id,
+    customerId: dto.customer_id,
     verifiedAt: parseUtcTimestamp(dto.verified_at),
     expiresAt: parseUtcTimestamp(dto.expires_at),
   };

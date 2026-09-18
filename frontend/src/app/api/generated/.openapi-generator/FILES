@@ -27,6 +27,8 @@ model/categoryResponse.ts
 model/categoryUpdate.ts
 model/commentVisibility.ts
 model/completePasswordChangeRequest.ts
+model/currentCustomerVerification.ts
+model/currentCustomerVerificationResponse.ts
 model/customerActivationUpdate.ts
 model/customerCreate.ts
 model/customerDirectoryListResponse.ts
@@ -35,6 +37,7 @@ model/customerProfileResponse.ts
 model/customerReference.ts
 model/customerSearchKind.ts
 model/customerSearchRequest.ts
+model/customerTicketLookupRequest.ts
 model/customerUpdate.ts
 model/customerVerificationCreate.ts
 model/customerVerificationResponse.ts
@@ -52,6 +55,7 @@ model/response422CreateCustomerVerification.ts
 model/response422CreateTicket.ts
 model/response422ListCustomerTickets.ts
 model/response422ListTickets.ts
+model/response422LookupCustomerTicket.ts
 model/response422SearchCustomers.ts
 model/response422UpdateCustomer.ts
 model/response422UpdateTicketAssignment.ts
@@ -72,6 +76,8 @@ model/ticketListResponse.ts
 model/ticketPriority.ts
 model/ticketPriorityUpdate.ts
 model/ticketResponse.ts
+model/ticketSearchKind.ts
+model/ticketSearchRequest.ts
 model/ticketStatus.ts
 model/ticketStatusUpdate.ts
 model/userActivationUpdate.ts
