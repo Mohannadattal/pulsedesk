@@ -37,6 +37,11 @@ export const routes: Routes = [
           import('./features/tickets/tickets.routes').then((routes) => routes.TICKET_ROUTES),
       },
       {
+        path: 'customers',
+        loadChildren: () =>
+          import('./features/customers/customers.routes').then((routes) => routes.CUSTOMER_ROUTES),
+      },
+      {
         path: 'administration',
         loadChildren: () =>
           import('./features/administration/administration.routes').then(

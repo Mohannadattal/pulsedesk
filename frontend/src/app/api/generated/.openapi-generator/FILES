@@ -7,6 +7,8 @@ api/authentication.service.ts
 api/authentication.serviceInterface.ts
 api/categories.service.ts
 api/categories.serviceInterface.ts
+api/customers.service.ts
+api/customers.serviceInterface.ts
 api/health.service.ts
 api/health.serviceInterface.ts
 api/tickets.service.ts
@@ -25,6 +27,17 @@ model/categoryResponse.ts
 model/categoryUpdate.ts
 model/commentVisibility.ts
 model/completePasswordChangeRequest.ts
+model/customerActivationUpdate.ts
+model/customerCreate.ts
+model/customerDirectoryListResponse.ts
+model/customerDirectoryResponse.ts
+model/customerProfileResponse.ts
+model/customerReference.ts
+model/customerSearchKind.ts
+model/customerSearchRequest.ts
+model/customerUpdate.ts
+model/customerVerificationCreate.ts
+model/customerVerificationResponse.ts
 model/errorCode.ts
 model/errorResponse.ts
 model/loginRequest.ts
@@ -35,7 +48,12 @@ model/passwordResetRequestListResponse.ts
 model/passwordResetRequestResponse.ts
 model/passwordResetRequestStatus.ts
 model/passwordResetUserResponse.ts
+model/response422CreateCustomerVerification.ts
+model/response422CreateTicket.ts
+model/response422ListCustomerTickets.ts
 model/response422ListTickets.ts
+model/response422SearchCustomers.ts
+model/response422UpdateCustomer.ts
 model/response422UpdateTicketAssignment.ts
 model/sessionType.ts
 model/ticketAssignmentUpdate.ts
@@ -66,6 +84,7 @@ model/userRole.ts
 model/validationErrorItem.ts
 model/validationErrorItemLocationInner.ts
 model/validationErrorResponse.ts
+model/verificationFactor.ts
 param.ts
 provide-api.ts
 variables.ts

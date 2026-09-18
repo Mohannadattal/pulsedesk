@@ -68,6 +68,21 @@
             </dl>
           </aside>
 
+          @if (ticket.customer; as customer) {
+            <section class="detail-section customer-context" aria-labelledby="customer-heading">
+              <h2 id="customer-heading">Customer</h2>
+              @if (canOpenCustomerProfile()) {
+                <a [routerLink]="['/customers', customer.id]">{{ customer.name }}</a>
+              } @else {
+                <strong>{{ customer.name }}</strong>
+              }
+              <span class="customer-number">{{ customer.customerNumber }}</span>
+              <span>{{
+                ticket.customerWasVerified ? 'Verified at creation' : 'Not verified at creation'
+              }}</span>
+            </section>
+          }
+
           <section class="detail-section timeline" aria-labelledby="timeline-heading">
             <h2 id="timeline-heading">Timeline</h2>
             <dl>

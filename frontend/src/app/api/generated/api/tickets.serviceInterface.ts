@@ -12,6 +12,7 @@ import { HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { ErrorResponse } from '../model/models';
+import { Response422CreateTicket } from '../model/models';
 import { Response422ListTickets } from '../model/models';
 import { Response422UpdateTicketAssignment } from '../model/models';
 import { TicketAssignmentUpdate } from '../model/models';
@@ -103,6 +104,7 @@ export interface TicketsApiInterface {
    * @param categoryId
    * @param assignedToId
    * @param createdById
+   * @param customerId
    * @param unassigned
    * @param page
    * @param pageSize
@@ -113,6 +115,7 @@ export interface TicketsApiInterface {
     categoryId?: number,
     assignedToId?: number,
     createdById?: number,
+    customerId?: number,
     unassigned?: boolean,
     page?: number,
     pageSize?: number,

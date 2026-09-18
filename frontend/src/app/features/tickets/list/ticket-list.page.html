@@ -10,7 +10,7 @@
       }}
     </p>
   </div>
-  @if (session.currentUser()?.role === 'EMPLOYEE') {
+  @if (session.currentUser()?.role !== 'AGENT') {
     <a mat-flat-button routerLink="/tickets/new">Create ticket</a>
   }
 </header>

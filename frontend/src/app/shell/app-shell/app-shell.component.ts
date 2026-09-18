@@ -21,6 +21,7 @@ interface NavigationItem {
 const NAVIGATION_ITEMS: readonly NavigationItem[] = Object.freeze([
   { label: 'My tickets', path: '/tickets', roles: [UserRole.EMPLOYEE] },
   { label: 'Tickets', path: '/tickets', roles: [UserRole.AGENT, UserRole.ADMIN] },
+  { label: 'Customers', path: '/customers', roles: [UserRole.EMPLOYEE, UserRole.ADMIN] },
   { label: 'Administration', path: '/administration', roles: [UserRole.ADMIN] },
 ]);
 

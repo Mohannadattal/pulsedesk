@@ -73,6 +73,7 @@ export class TicketsDataAccess {
         filters.categoryId,
         filters.assignedToId,
         undefined,
+        undefined,
         filters.assignedToId === undefined ? filters.unassigned : undefined,
         filters.page,
         filters.pageSize,

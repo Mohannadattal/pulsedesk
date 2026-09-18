@@ -1,0 +1,234 @@
+<a class="back-link" routerLink="/customers">← Back to customers</a>
+@let current = state();
+@switch (current.kind) {
+  @case ('loading') {
+    <section class="loading" aria-live="polite">
+      <mat-progress-bar mode="indeterminate" />
+      <p>Loading customer profile…</p>
+    </section>
+  }
+  @case ('error') {
+    <app-page-message
+      [kind]="
+        current.error.kind === 'not-found'
+          ? 'not-found'
+          : current.error.kind === 'forbidden'
+            ? 'forbidden'
+            : 'error'
+      "
+      title="Customer could not be loaded"
+      detail="This customer does not exist, is unavailable, or is not visible to your account."
+      [actionLabel]="current.error.kind !== 'not-found' ? 'Try again' : undefined"
+      (action)="retry()"
+    />
+  }
+  @case ('loaded') {
+    @let customer = current.customer;
+    <header class="profile-header">
+      <div>
+        <p class="number">{{ customer.customerNumber }}</p>
+        <h1>{{ customer.name }}</h1>
+        <span class="status" [class.status--inactive]="!customer.isActive">{{
+          customer.isActive ? 'Active customer' : 'Inactive customer'
+        }}</span>
+      </div>
+      <div class="header-actions">
+        @if (canEdit(customer) && !editMode()) {
+          <button mat-stroked-button type="button" (click)="editMode.set(true)">
+            Edit customer
+          </button>
+        }
+        @if (isAdmin) {
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="activationPending()"
+            (click)="changeActivation(customer)"
+          >
+            {{ customer.isActive ? 'Deactivate' : 'Reactivate' }}
+          </button>
+        }
+        @if (customer.isActive) {
+          <button mat-flat-button type="button" (click)="createTicketOpen.set(!createTicketOpen())">
+            Create ticket
+          </button>
+        }
+      </div>
+    </header>
+
+    @if (editMode()) {
+      <section class="panel">
+        <h2>Edit customer</h2>
+        <app-customer-form
+          [customer]="customer"
+          submitLabel="Save changes"
+          [submitting]="editing()"
+          [formError]="editError()"
+          (saved)="saveEdit($event, customer)"
+          (cancelled)="editMode.set(false)"
+        />
+      </section>
+    } @else {
+      <section class="profile-grid" aria-label="Customer profile details">
+        <div class="panel">
+          <h2>Identity</h2>
+          <dl>
+            <div>
+              <dt>Date of birth</dt>
+              <dd>
+                {{ (customer.dateOfBirth | dateOnly) ?? 'Not recorded' }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+        <div class="panel">
+          <h2>Contact</h2>
+          <dl>
+            <div>
+              <dt>Email</dt>
+              <dd>{{ customer.email ?? 'Not recorded' }}</dd>
+            </div>
+            <div>
+              <dt>Phone</dt>
+              <dd>{{ customer.phone ?? 'Not recorded' }}</dd>
+            </div>
+          </dl>
+        </div>
+        <div class="panel">
+          <h2>Address</h2>
+          <address>
+            {{ addressLine(customer.street, customer.houseNumber) || 'Not recorded' }}<br />{{
+              addressLine(customer.postalCode, customer.city)
+            }}<br />{{ customer.country ?? '' }}
+          </address>
+        </div>
+      </section>
+    }
+
+    @if (createTicketOpen() && customer.isActive) {
+      <section class="panel create-ticket" aria-labelledby="create-ticket-heading">
+        <div class="section-heading">
+          <div>
+            <h2 id="create-ticket-heading">Create ticket for {{ customer.name }}</h2>
+            <p [class.verified-copy]="verificationIsValid()">
+              {{
+                verificationIsValid()
+                  ? 'Verified interaction — current verification will be attached.'
+                  : 'Not currently verified — ticket creation is still allowed.'
+              }}
+            </p>
+          </div>
+          <button mat-button type="button" (click)="createTicketOpen.set(false)">Close</button>
+        </div>
+        <form [formGroup]="ticketForm" (ngSubmit)="createTicket(customer)">
+          <mat-form-field appearance="outline"
+            ><mat-label>Title</mat-label
+            ><input matInput formControlName="title" maxlength="200" /></mat-form-field
+          ><mat-form-field appearance="outline"
+            ><mat-label>Category</mat-label
+            ><mat-select formControlName="categoryId" [disabled]="categoriesLoading()">
+              @for (category of categories(); track category.id) {
+                <mat-option [value]="category.id">{{ category.name }}</mat-option>
+              }
+            </mat-select></mat-form-field
+          ><mat-form-field class="description-field" appearance="outline"
+            ><mat-label>Description</mat-label
+            ><textarea matInput formControlName="description" rows="5"></textarea>
+          </mat-form-field>
+          @if (!categoriesLoading() && categories().length === 0) {
+            <p class="error">No active ticket categories are available.</p>
+          }
+          @if (ticketError()) {
+            <p class="error" role="alert">{{ ticketError() }}</p>
+          }
+          <div class="form-actions">
+            <button
+              mat-flat-button
+              type="submit"
+              [disabled]="ticketSubmitting() || categories().length === 0"
+            >
+              {{ ticketSubmitting() ? 'Creating…' : 'Create ticket' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+
+    <app-customer-verification
+      [customer]="customer"
+      [verification]="verification()"
+      (verified)="acceptVerification($event)"
+    />
+
+    <section class="panel history" aria-labelledby="history-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="history-heading">Ticket history</h2>
+          <p>Support requests recorded for this customer.</p>
+        </div>
+      </div>
+      @let historyState = history();
+      @switch (historyState.kind) {
+        @case ('loading') {
+          <mat-progress-bar mode="indeterminate" aria-label="Loading ticket history" />
+        }
+        @case ('error') {
+          <p class="error">Ticket history could not be loaded.</p>
+        }
+        @case ('loaded') {
+          @let page = historyState.page;
+          @if (page.items.length === 0) {
+            <p class="empty">No tickets have been recorded for this customer.</p>
+          } @else {
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ticket</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Category</th>
+                    <th>Created by</th>
+                    <th>Assigned to</th>
+                    <th>Created</th>
+                    <th>Verification</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ticket of page.items; track ticket.id) {
+                    <tr>
+                      <td>
+                        <a [routerLink]="['/tickets', ticket.id]"
+                          ><span class="number">{{ ticket.ticketNumber }}</span
+                          >{{ ticket.title }}</a
+                        >
+                      </td>
+                      <td>{{ enumLabel(ticket.status) }}</td>
+                      <td>{{ enumLabel(ticket.priority) }}</td>
+                      <td>{{ ticket.category.name }}</td>
+                      <td>{{ ticket.creator.name }}</td>
+                      <td>{{ ticket.assignee?.name ?? 'Unassigned' }}</td>
+                      <td>
+                        <time [attr.datetime]="ticket.createdAt.toISOString()">{{
+                          ticket.createdAt | localDateTime
+                        }}</time>
+                      </td>
+                      <td>{{ ticket.customerWasVerified ? 'Verified' : 'Not verified' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <mat-paginator
+              [length]="page.total"
+              [pageIndex]="page.page - 1"
+              [pageSize]="page.pageSize"
+              [pageSizeOptions]="[10, 20, 50]"
+              (page)="historyPage($event)"
+            />
+          }
+        }
+      }
+    </section>
+  }
+}

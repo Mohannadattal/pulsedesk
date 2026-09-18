@@ -21,18 +21,8 @@ describe('employeeCreateTicketGuard', () => {
     });
   });
 
-  it('allows employees to open the ticket creation page', () => {
-    session.currentUser.mockReturnValue({ role: UserRole.EMPLOYEE });
-
-    const result = TestBed.runInInjectionContext(() =>
-      employeeCreateTicketGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
-    );
-
-    expect(result).toBe(true);
-  });
-
-  it.each([UserRole.AGENT, UserRole.ADMIN])(
-    'keeps %s mutation workflows out of the employee page',
+  it.each([UserRole.EMPLOYEE, UserRole.ADMIN])(
+    'allows %s to open the ticket creation page',
     (role) => {
       session.currentUser.mockReturnValue({ role });
 
@@ -40,8 +30,18 @@ describe('employeeCreateTicketGuard', () => {
         employeeCreateTicketGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
       );
 
-      expect(result).toBe(ticketsTree);
-      expect(router.createUrlTree).toHaveBeenCalledWith(['/tickets']);
+      expect(result).toBe(true);
     },
   );
+
+  it.each([UserRole.AGENT])('keeps %s out of the ticket creation page', (role) => {
+    session.currentUser.mockReturnValue({ role });
+
+    const result = TestBed.runInInjectionContext(() =>
+      employeeCreateTicketGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+    );
+
+    expect(result).toBe(ticketsTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/tickets']);
+  });
 });

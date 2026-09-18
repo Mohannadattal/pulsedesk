@@ -1,0 +1,64 @@
+<section class="panel" aria-labelledby="verification-heading">
+  <div class="heading">
+    <div>
+      <h2 id="verification-heading">Verification</h2>
+      <p>Ask open questions. Record only the factors the caller answered correctly.</p>
+    </div>
+    @if (verification(); as current) {
+      <span class="verified"
+        >Verified by {{ verifierName() }} · valid until
+        {{ current.expiresAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span
+      >
+    }
+  </div>
+  @if (!customer().isActive) {
+    <p class="notice">Inactive customers cannot be verified.</p>
+  } @else {
+    <div class="factors">
+      @for (option of options(); track option.factor) {
+        <div class="factor" [class.factor--disabled]="!option.available">
+          <mat-checkbox
+            [checked]="selected().includes(option.factor)"
+            [disabled]="
+              !option.available ||
+              (!selected().includes(option.factor) && selected().length === 2) ||
+              submitting()
+            "
+            (change)="toggle(option.factor, $event.checked)"
+          >
+            {{ option.label }}
+          </mat-checkbox>
+          <span class="prompt">Ask: “{{ option.prompt }}”</span>
+          @if (option.available) {
+            <button
+              class="reveal"
+              mat-button
+              type="button"
+              (click)="toggleReveal(option.factor)"
+              [attr.aria-expanded]="revealed().includes(option.factor)"
+            >
+              {{ revealed().includes(option.factor) ? 'Hide stored value' : 'Show stored value' }}
+            </button>
+            @if (revealed().includes(option.factor)) {
+              <span class="stored">Stored value: {{ option.value }}</span>
+            }
+          }
+        </div>
+      }
+    </div>
+    <div class="actions">
+      <span>{{ selected().length }} of 2 factors selected</span
+      ><button
+        mat-flat-button
+        type="button"
+        [disabled]="selected().length !== 2 || submitting()"
+        (click)="submit()"
+      >
+        {{ submitting() ? 'Recording…' : 'Confirm verification' }}
+      </button>
+    </div>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+  }
+</section>

@@ -20,6 +20,8 @@ const TICKET: Ticket = {
   category: { id: 4, name: 'Historical hardware' },
   creator: { id: 9, name: 'Eli Employee' },
   assignee: { id: 21, name: 'Former Agent' },
+  customer: null,
+  customerWasVerified: false,
   createdAt: new Date('2026-09-15T08:00:00Z'),
   updatedAt: new Date('2026-09-15T08:00:00Z'),
   resolvedAt: null,

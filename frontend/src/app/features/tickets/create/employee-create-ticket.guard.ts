@@ -8,7 +8,7 @@ export const employeeCreateTicketGuard: CanActivateFn = () => {
   const session = inject(AuthSessionStore);
   const router = inject(Router);
 
-  return session.currentUser()?.role === UserRole.EMPLOYEE
+  return [UserRole.EMPLOYEE, UserRole.ADMIN].includes(session.currentUser()?.role as UserRole)
     ? true
     : router.createUrlTree(['/tickets']);
 };

@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { CustomerReference } from './customerReference';
 import { UserReference } from './userReference';
 import { TicketStatus } from './ticketStatus';
 import { TicketPriority } from './ticketPriority';
@@ -21,6 +22,9 @@ export interface TicketResponse {
   created_at: string;
   created_by: UserReference;
   created_by_id: number;
+  customer: CustomerReference | null;
+  customer_id: number | null;
+  customer_was_verified: boolean;
   description: string;
   id: number;
   priority: TicketPriority;

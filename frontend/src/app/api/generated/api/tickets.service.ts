@@ -25,6 +25,8 @@ import { Observable } from 'rxjs';
 // @ts-ignore
 import { ErrorResponse } from '../model/errorResponse';
 // @ts-ignore
+import { Response422CreateTicket } from '../model/response422CreateTicket';
+// @ts-ignore
 import { Response422ListTickets } from '../model/response422ListTickets';
 // @ts-ignore
 import { Response422UpdateTicketAssignment } from '../model/response422UpdateTicketAssignment';
@@ -634,6 +636,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
    * @param categoryId
    * @param assignedToId
    * @param createdById
+   * @param customerId
    * @param unassigned
    * @param page
    * @param pageSize
@@ -646,6 +649,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
     categoryId?: number,
     assignedToId?: number,
     createdById?: number,
+    customerId?: number,
     unassigned?: boolean,
     page?: number,
     pageSize?: number,
@@ -663,6 +667,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
     categoryId?: number,
     assignedToId?: number,
     createdById?: number,
+    customerId?: number,
     unassigned?: boolean,
     page?: number,
     pageSize?: number,
@@ -680,6 +685,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
     categoryId?: number,
     assignedToId?: number,
     createdById?: number,
+    customerId?: number,
     unassigned?: boolean,
     page?: number,
     pageSize?: number,
@@ -697,6 +703,7 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
     categoryId?: number,
     assignedToId?: number,
     createdById?: number,
+    customerId?: number,
     unassigned?: boolean,
     page?: number,
     pageSize?: number,
@@ -729,6 +736,11 @@ export class TicketsApi extends BaseService implements TicketsApiInterface {
       localVarQueryParameters,
       <any>createdById,
       'created_by_id',
+    );
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      <any>customerId,
+      'customer_id',
     );
     localVarQueryParameters = this.addToHttpParams(
       localVarQueryParameters,

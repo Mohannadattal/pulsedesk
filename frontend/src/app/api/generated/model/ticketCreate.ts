@@ -10,6 +10,8 @@
 
 export interface TicketCreate {
   category_id: number;
+  customer_id?: number | null;
+  customer_verification_id?: number | null;
   description: string;
   title: string;
 }

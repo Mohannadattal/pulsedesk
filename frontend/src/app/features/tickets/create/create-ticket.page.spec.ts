@@ -20,6 +20,8 @@ const CREATED_TICKET: Ticket = {
   category: { id: 4, name: 'Hardware' },
   creator: { id: 9, name: 'Eli Employee' },
   assignee: null,
+  customer: null,
+  customerWasVerified: false,
   createdAt: new Date('2026-09-15T08:00:00Z'),
   updatedAt: new Date('2026-09-15T08:00:00Z'),
   resolvedAt: null,

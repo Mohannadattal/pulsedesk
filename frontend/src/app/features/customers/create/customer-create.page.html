@@ -1,0 +1,16 @@
+<a class="back-link" routerLink="/customers">← Back to customers</a>
+<header>
+  <p class="eyebrow">Customer directory</p>
+  <h1>Create customer</h1>
+  <p>Record the caller's identity and contact details.</p>
+</header>
+<section class="panel" aria-labelledby="create-customer-heading">
+  <h2 id="create-customer-heading">Customer details</h2>
+  <app-customer-form
+    submitLabel="Create customer"
+    [submitting]="submitting()"
+    [formError]="formError()"
+    (saved)="save($event)"
+    (cancelled)="cancel()"
+  />
+</section>

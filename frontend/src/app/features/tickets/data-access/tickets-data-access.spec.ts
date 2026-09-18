@@ -173,6 +173,7 @@ describe('TicketsDataAccess', () => {
       8,
       undefined,
       undefined,
+      undefined,
       1,
       20,
       'body',

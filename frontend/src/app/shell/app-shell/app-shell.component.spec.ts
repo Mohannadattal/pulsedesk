@@ -53,4 +53,30 @@ describe('AppShellComponent administration navigation', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).not.toContain('Administration');
   });
+
+  it.each([UserRole.EMPLOYEE, UserRole.ADMIN])('shows Customers to %s', (role) => {
+    currentUser.set({
+      id: 3,
+      first_name: 'Customer',
+      last_name: 'User',
+      email: 'user@example.com',
+      role,
+    });
+    fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Customers');
+  });
+
+  it('hides Customers from Agents', () => {
+    currentUser.set({
+      id: 4,
+      first_name: 'Ada',
+      last_name: 'Agent',
+      email: 'agent@example.com',
+      role: UserRole.AGENT,
+    });
+    fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Customers');
+  });
 });

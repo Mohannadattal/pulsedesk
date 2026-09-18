@@ -21,6 +21,8 @@ const TICKET: Ticket = {
   category: { id: 4, name: 'Hardware' },
   creator: { id: 9, name: 'Eli Employee' },
   assignee: null,
+  customer: null,
+  customerWasVerified: false,
   createdAt: new Date('2026-09-15T08:00:00Z'),
   updatedAt: new Date('2026-09-15T08:00:00Z'),
   resolvedAt: null,
@@ -104,5 +106,12 @@ describe('TicketDetailPage authoritative ticket state', () => {
     second.next(ticket18);
 
     expect(fixture.componentInstance['state']()).toEqual({ kind: 'loaded', ticket: ticket18 });
+  });
+
+  it('never exposes a Customer-profile link to Agents', async () => {
+    await render();
+    expect(fixture.componentInstance['canOpenCustomerProfile']()).toBe(false);
+    session.currentUser.mockReturnValue({ id: 6, role: UserRole.ADMIN });
+    expect(fixture.componentInstance['canOpenCustomerProfile']()).toBe(true);
   });
 });

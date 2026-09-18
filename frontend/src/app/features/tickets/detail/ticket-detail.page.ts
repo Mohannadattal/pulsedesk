@@ -6,6 +6,7 @@ import { catchError, combineLatest, map, of, startWith, Subject, switchMap } fro
 
 import { TicketPriority } from '../../../api/generated/model/ticketPriority';
 import { TicketStatus } from '../../../api/generated/model/ticketStatus';
+import { UserRole } from '../../../api/generated/model/userRole';
 import { AuthSessionStore } from '../../../platform/auth/auth-session.store';
 import { AppError, normalizeHttpError } from '../../../platform/http/app-error';
 import { PageMessageComponent } from '../../../shared/ui/page-message/page-message.component';
@@ -101,6 +102,11 @@ export class TicketDetailPage {
 
   protected isSupport(): boolean {
     return canOperateTicket(this.session.currentUser()?.role);
+  }
+
+  protected canOpenCustomerProfile(): boolean {
+    const role = this.session.currentUser()?.role;
+    return role === UserRole.EMPLOYEE || role === UserRole.ADMIN;
   }
 
   protected replaceTicket(ticket: Ticket): void {

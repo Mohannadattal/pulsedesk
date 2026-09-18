@@ -1,0 +1,46 @@
+:host {
+  display: block;
+  max-width: 64rem;
+}
+.back-link {
+  display: inline-flex;
+  margin-bottom: var(--pd-space-4);
+  color: var(--pd-color-action-strong);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+header {
+  margin-bottom: var(--pd-space-5);
+}
+.eyebrow {
+  margin: 0 0 var(--pd-space-1);
+  color: var(--pd-color-action-strong);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+header p:last-child {
+  margin: var(--pd-space-2) 0 0;
+  color: var(--pd-color-text-muted);
+}
+.panel {
+  padding: var(--pd-space-5);
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-surface);
+  background: var(--pd-color-surface);
+}
+h2 {
+  margin: 0 0 var(--pd-space-5);
+  font-size: 1rem;
+}
+@media (max-width: 36rem) {
+  .panel {
+    padding: var(--pd-space-4);
+  }
+}

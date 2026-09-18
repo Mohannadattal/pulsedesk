@@ -7,6 +7,9 @@ export * from './authentication.serviceInterface';
 export * from './categories.service';
 import { CategoriesApi } from './categories.service';
 export * from './categories.serviceInterface';
+export * from './customers.service';
+import { CustomersApi } from './customers.service';
+export * from './customers.serviceInterface';
 export * from './health.service';
 import { HealthApi } from './health.service';
 export * from './health.serviceInterface';
@@ -20,6 +23,7 @@ export const APIS = [
   AdministrationApi,
   AuthenticationApi,
   CategoriesApi,
+  CustomersApi,
   HealthApi,
   TicketsApi,
   UsersApi,
