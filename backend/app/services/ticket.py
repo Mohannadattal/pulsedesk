@@ -38,6 +38,7 @@ from app.schemas.ticket import (
     TicketListResponse,
     TicketSearchRequest,
 )
+from app.services.notification import NotificationService
 from app.services.ticket_event import TicketEventRecorder, display_name
 from app.utils.time import utc_now_naive
 
@@ -64,6 +65,7 @@ class TicketService:
         ticket_event_recorder: TicketEventRecorder,
         customer_repository: CustomerRepository | None = None,
         customer_verification_repository: CustomerVerificationRepository | None = None,
+        notification_service: NotificationService | None = None,
     ) -> None:
         self.db = db
         self.ticket_repository = ticket_repository
@@ -74,6 +76,7 @@ class TicketService:
         self.customer_verification_repository = (
             customer_verification_repository or CustomerVerificationRepository(db)
         )
+        self.notification_service = notification_service
 
     def create_ticket(self, data: TicketCreate, actor: User) -> Ticket:
         if actor.role not in {UserRole.EMPLOYEE.value, UserRole.ADMIN.value}:
@@ -251,10 +254,16 @@ class TicketService:
         data: TicketSearchRequest,
         actor: User,
     ) -> TicketListResponse:
-        self._require_support(actor)
+        if actor.role not in {
+            UserRole.EMPLOYEE.value,
+            UserRole.AGENT.value,
+            UserRole.ADMIN.value,
+        }:
+            raise AuthorizationError
         tickets, total = self.ticket_repository.search(
             kind=data.kind,
             value=data.value,
+            employee_id=(actor.id if actor.role == UserRole.EMPLOYEE.value else None),
             page=data.page,
             page_size=data.page_size,
         )
@@ -296,6 +305,12 @@ class TicketService:
             )
 
             ticket.assigned_to_id = assigned_to_id
+            if self.notification_service is not None:
+                self.notification_service.notify_ticket_assignment(
+                    ticket,
+                    actor,
+                    was_assigned=old_assigned_to_id is not None,
+                )
             return self._save_and_commit(
                 ticket,
                 actor=actor,
@@ -381,6 +396,13 @@ class TicketService:
                 lifecycle_event_type = TicketEventType.TICKET_RESOLVED
             elif requested_status == TicketStatus.CLOSED:
                 lifecycle_event_type = TicketEventType.TICKET_CLOSED
+
+            if self.notification_service is not None:
+                self.notification_service.notify_ticket_status(
+                    ticket,
+                    actor,
+                    requested_status,
+                )
 
             return self._save_and_commit(
                 ticket,

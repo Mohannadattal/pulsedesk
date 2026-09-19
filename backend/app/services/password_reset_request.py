@@ -32,6 +32,7 @@ from app.schemas.password_reset_request import (
     PasswordResetRequestListResponse,
     PasswordResetRequestResponse,
 )
+from app.services.notification import NotificationService
 from app.utils.time import utc_now_naive
 
 
@@ -42,11 +43,13 @@ class PasswordResetService:
         password_reset_repository: PasswordResetRequestRepository,
         user_repository: UserRepository,
         password_hasher: PasswordHasher,
+        notification_service: NotificationService | None = None,
     ) -> None:
         self.db = db
         self.password_reset_repository = password_reset_repository
         self.user_repository = user_repository
         self.password_hasher = password_hasher
+        self.notification_service = notification_service
 
     def request_reset(
         self,
@@ -68,6 +71,8 @@ class PasswordResetService:
         )
         try:
             self.password_reset_repository.create(request)
+            if self.notification_service is not None:
+                self.notification_service.notify_password_reset_requested()
             self.db.commit()
         except DuplicatePendingPasswordResetRequestError:
             self.db.rollback()
@@ -150,6 +155,11 @@ class PasswordResetService:
             request.resolved_at = now
             request.resolved_by_user_id = locked_actor.id
             request = self.password_reset_repository.save(request)
+            if self.notification_service is not None:
+                self.notification_service.notify_password_reset_completed(
+                    target,
+                    locked_actor,
+                )
             self.db.commit()
         except Exception:
             self.db.rollback()

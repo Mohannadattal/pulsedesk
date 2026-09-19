@@ -107,7 +107,8 @@ export class TicketListPage {
   protected readonly isSupport = [UserRole.AGENT, UserRole.ADMIN].includes(
     this.session.currentUser()?.role as UserRole,
   );
-  protected readonly hasOperationalQueue = !this.isSupport;
+  protected readonly isSearchFirst = true;
+  protected readonly hasOperationalQueue = false;
 
   private readonly initialFilters = this.scopeFilters(
     parseTicketFilters(this.route.snapshot.queryParamMap),

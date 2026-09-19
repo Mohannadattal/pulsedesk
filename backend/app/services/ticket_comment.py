@@ -10,6 +10,7 @@ from app.schemas.ticket_comment import (
     TicketCommentListFilters,
     TicketCommentListResponse,
 )
+from app.services.notification import NotificationService
 from app.services.ticket import TicketService
 from app.services.ticket_event import TicketEventRecorder
 from app.utils.time import utc_now_naive
@@ -22,11 +23,13 @@ class TicketCommentService:
         ticket_service: TicketService,
         ticket_comment_repository: TicketCommentRepository,
         ticket_event_recorder: TicketEventRecorder,
+        notification_service: NotificationService | None = None,
     ) -> None:
         self.db = db
         self.ticket_service = ticket_service
         self.ticket_comment_repository = ticket_comment_repository
         self.ticket_event_recorder = ticket_event_recorder
+        self.notification_service = notification_service
 
     def create_comment(
         self,
@@ -35,7 +38,7 @@ class TicketCommentService:
         actor: User,
     ) -> TicketComment:
         try:
-            self.ticket_service.get_ticket(ticket_id, actor)
+            ticket = self.ticket_service.get_ticket(ticket_id, actor)
             if (
                 actor.role == UserRole.EMPLOYEE.value
                 and data.visibility == CommentVisibility.INTERNAL
@@ -68,6 +71,12 @@ class TicketCommentService:
                 },
                 created_at=now,
             )
+            if self.notification_service is not None:
+                self.notification_service.notify_ticket_comment(
+                    ticket,
+                    actor,
+                    data.visibility,
+                )
             response_comment = self.ticket_comment_repository.get_by_id_with_author(
                 comment.id,
             )

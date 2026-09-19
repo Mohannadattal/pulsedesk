@@ -100,22 +100,30 @@ class TicketRepository:
         *,
         kind: TicketSearchKind,
         value: str,
+        employee_id: int | None,
         page: int,
         page_size: int,
     ) -> tuple[list[Ticket], int]:
-        condition = (
+        conditions = [
             Ticket.ticket_number == value
             if kind == TicketSearchKind.TICKET_NUMBER
             else Ticket.title.like(f"{_escape_like(value)}%", escape="\\")
-        )
+        ]
+        if employee_id is not None:
+            conditions.append(
+                or_(
+                    Ticket.created_by_id == employee_id,
+                    Ticket.customer_id.is_not(None),
+                )
+            )
         total = (
-            self.db.scalar(select(func.count()).select_from(Ticket).where(condition))
+            self.db.scalar(select(func.count()).select_from(Ticket).where(*conditions))
             or 0
         )
         statement = (
             select(Ticket)
             .options(*TICKET_DISPLAY_REFERENCE_OPTIONS)
-            .where(condition)
+            .where(*conditions)
             .order_by(Ticket.created_at.desc(), Ticket.id.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)

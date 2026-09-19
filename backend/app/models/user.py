@@ -10,6 +10,7 @@ from app.database.base import Base
 
 if TYPE_CHECKING:
     from app.models.customer_verification import CustomerVerification
+    from app.models.notification import Notification
     from app.models.ticket import Ticket
     from app.models.ticket_comment import TicketComment
     from app.models.ticket_event import TicketEvent
@@ -114,4 +115,14 @@ class User(Base):
 
     customer_verifications: Mapped[list["CustomerVerification"]] = relationship(
         back_populates="verified_by",
+    )
+
+    received_notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="recipient",
+        foreign_keys="Notification.recipient_user_id",
+    )
+
+    acted_notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="actor",
+        foreign_keys="Notification.actor_user_id",
     )

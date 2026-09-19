@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     access_token_expire_minutes: PositiveInt = 30
     password_change_token_expire_minutes: PositiveInt = 10
+    notification_retention_days: PositiveInt = 90
+    notification_cleanup_batch_size: PositiveInt = 1000
+    notification_cleanup_max_batches: PositiveInt = 100
     cors_allowed_origins: list[str] = [
         "http://localhost:4200",
         "http://127.0.0.1:4200",

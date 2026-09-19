@@ -87,6 +87,18 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.notification-menu.mat-mdc-menu-panel {
+  width: min(26rem, calc(100vw - 1rem));
+  max-width: min(26rem, calc(100vw - 1rem));
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-surface);
+  box-shadow: var(--pd-elevation-overlay);
+}
+
+.notification-menu .mat-mdc-menu-content {
+  padding: 0;
+}
+
 button,
 input,
 select,

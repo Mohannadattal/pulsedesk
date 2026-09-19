@@ -1,0 +1,108 @@
+:host {
+  display: block;
+  max-width: 58rem;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pd-space-4);
+  margin-bottom: var(--pd-space-4);
+}
+
+.eyebrow {
+  margin: 0 0 var(--pd-space-1);
+  color: var(--pd-color-action-strong);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 720;
+  letter-spacing: -0.035em;
+}
+
+.page-header p:last-child {
+  margin: var(--pd-space-2) 0 0;
+  color: var(--pd-color-text-muted);
+  font-size: 0.875rem;
+}
+
+.toolbar {
+  display: flex;
+  gap: var(--pd-space-1);
+  margin-bottom: var(--pd-space-3);
+  padding: var(--pd-space-1);
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-color-surface);
+  width: fit-content;
+}
+
+.toolbar__active {
+  background: var(--pd-color-action-soft);
+  color: var(--pd-color-action-strong);
+}
+
+.results {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-surface);
+  background: var(--pd-color-surface);
+  box-shadow: var(--pd-elevation-surface);
+}
+
+.results mat-progress-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+}
+
+.results__summary {
+  min-height: 2.75rem;
+  padding: var(--pd-space-3) var(--pd-space-4);
+  border-bottom: 1px solid var(--pd-color-border);
+  color: var(--pd-color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.notification-list app-notification-item + app-notification-item {
+  border-top: 1px solid var(--pd-color-border);
+}
+
+.action-error {
+  padding: var(--pd-space-3) var(--pd-space-4);
+  border: 1px solid color-mix(in srgb, var(--pd-color-danger) 30%, transparent);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-color-danger-soft);
+  color: var(--pd-color-danger-strong);
+  font-size: 0.8rem;
+}
+
+.initial-loading {
+  padding: var(--pd-space-4);
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-surface);
+  background: var(--pd-color-surface);
+}
+
+.initial-loading div {
+  height: 3.5rem;
+  border-bottom: 1px solid var(--pd-color-border);
+  background: linear-gradient(90deg, transparent, var(--pd-color-surface-muted), transparent);
+}
+
+@media (max-width: 34rem) {
+  .page-header {
+    flex-direction: column;
+  }
+}

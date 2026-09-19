@@ -1,6 +1,7 @@
 from app.models.category import Category
 from app.models.customer import Customer
 from app.models.customer_verification import CustomerVerification
+from app.models.notification import Notification
 from app.models.password_reset_request import PasswordResetRequest
 from app.models.ticket import Ticket
 from app.models.ticket_comment import TicketComment
@@ -11,6 +12,7 @@ __all__ = [
     "Category",
     "Customer",
     "CustomerVerification",
+    "Notification",
     "PasswordResetRequest",
     "Ticket",
     "TicketComment",

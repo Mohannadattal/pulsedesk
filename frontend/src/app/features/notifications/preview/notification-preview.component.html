@@ -1,0 +1,55 @@
+<section class="preview" aria-label="Notifications">
+  <header class="preview__header">
+    <div>
+      <strong>Notifications</strong>
+      <span>Latest activity</span>
+    </div>
+    @if ((indicator.unreadCount() ?? 0) > 0) {
+      <button mat-button type="button" [disabled]="actionPending()" (click)="markAllRead()">
+        Mark all read
+      </button>
+    }
+  </header>
+
+  @if (actionError()) {
+    <p class="preview__error" role="alert">{{ actionError() }}</p>
+  }
+
+  @let current = state();
+  @switch (current.kind) {
+    @case ('idle') {
+      <p class="preview__status">Open the preview to load notifications.</p>
+    }
+    @case ('loading') {
+      <div class="preview__loading" aria-live="polite">
+        <span>Loading notifications…</span>
+      </div>
+    }
+    @case ('error') {
+      <div class="preview__status" role="alert">
+        <span>Notifications could not be loaded.</span>
+        <button mat-button type="button" (click)="load()">Try again</button>
+      </div>
+    }
+    @case ('loaded') {
+      @if (current.page.items.length === 0) {
+        <p class="preview__status">You're all caught up.</p>
+      } @else {
+        <div class="preview__items">
+          @for (notification of current.page.items; track notification.id) {
+            <app-notification-item
+              [notification]="notification"
+              [role]="session.currentUser()?.role"
+              [compact]="true"
+              (activate)="activate($event)"
+            />
+          }
+        </div>
+      }
+    }
+  }
+
+  <footer class="preview__footer">
+    <a mat-button routerLink="/notifications" (click)="dismiss.emit()">View all notifications</a>
+  </footer>
+</section>

@@ -10,6 +10,7 @@ from app.dependencies.database import get_db
 from app.repositories.category import CategoryRepository
 from app.repositories.customer import CustomerRepository
 from app.repositories.customer_verification import CustomerVerificationRepository
+from app.repositories.notification import NotificationRepository
 from app.repositories.password_reset_request import PasswordResetRequestRepository
 from app.repositories.ticket import TicketRepository
 from app.repositories.ticket_comment import TicketCommentRepository
@@ -18,6 +19,7 @@ from app.repositories.user import UserRepository
 from app.services.auth import AuthenticationService
 from app.services.category import CategoryService
 from app.services.customer import CustomerService
+from app.services.notification import NotificationService
 from app.services.password_reset_request import PasswordResetService
 from app.services.ticket import TicketService
 from app.services.ticket_comment import TicketCommentService
@@ -32,6 +34,20 @@ access_token_manager = AccessTokenManager(
         minutes=settings.password_change_token_expire_minutes
     ),
 )
+
+
+def _build_notification_service(db: Session) -> NotificationService:
+    return NotificationService(
+        db=db,
+        notification_repository=NotificationRepository(db),
+        user_repository=UserRepository(db),
+    )
+
+
+def get_notification_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> NotificationService:
+    return _build_notification_service(db)
 
 
 def get_user_service(
@@ -65,6 +81,7 @@ def get_password_reset_service(
         password_reset_repository=PasswordResetRequestRepository(db),
         user_repository=UserRepository(db),
         password_hasher=password_hasher,
+        notification_service=_build_notification_service(db),
     )
 
 
@@ -100,6 +117,7 @@ def _build_ticket_service(
         ticket_event_recorder=TicketEventRecorder(event_repository),
         customer_repository=CustomerRepository(db),
         customer_verification_repository=CustomerVerificationRepository(db),
+        notification_service=_build_notification_service(db),
     )
 
 
@@ -118,6 +136,7 @@ def get_ticket_comment_service(
         ticket_service=_build_ticket_service(db, ticket_event_repository),
         ticket_comment_repository=TicketCommentRepository(db),
         ticket_event_recorder=TicketEventRecorder(ticket_event_repository),
+        notification_service=_build_notification_service(db),
     )
 
 

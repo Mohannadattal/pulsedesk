@@ -1,0 +1,143 @@
+:host {
+  display: block;
+}
+
+.notification {
+  border-left: 3px solid transparent;
+  background: var(--pd-color-surface);
+}
+
+.notification--unread {
+  border-left-color: var(--pd-color-action);
+  background: var(--pd-color-action-soft);
+}
+
+.notification__action {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pd-space-4);
+  padding: var(--pd-space-4);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification__action:hover {
+  background: color-mix(in srgb, var(--pd-color-action-soft) 45%, transparent);
+}
+
+.notification__action:disabled {
+  background: transparent;
+  color: inherit;
+  cursor: default;
+}
+
+.notification__content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.notification__heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--pd-space-2);
+}
+
+.notification__heading strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 670;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification__unread-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--pd-color-action);
+}
+
+.notification__ticket {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: var(--pd-space-2);
+  color: var(--pd-color-text-muted);
+  font-size: 0.78rem;
+}
+
+.notification__ticket-number {
+  min-width: 0;
+  flex: 0 1 auto;
+  color: var(--pd-color-action-strong);
+  font-family: var(--pd-font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.notification__ticket-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification__actor,
+.notification__time {
+  min-width: 0;
+  color: var(--pd-color-text-muted);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.notification__operation {
+  flex: 0 0 auto;
+  color: var(--pd-color-action-strong);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.notification--compact .notification__action {
+  align-items: flex-start;
+  padding: var(--pd-space-3) var(--pd-space-4);
+}
+
+.notification--compact .notification__operation {
+  display: none;
+}
+
+.notification--compact .notification__heading strong,
+.notification--compact .notification__ticket-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .notification__action {
+    align-items: flex-start;
+    padding: var(--pd-space-3);
+  }
+
+  .notification__operation {
+    display: none;
+  }
+
+  .notification__heading strong,
+  .notification__ticket-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

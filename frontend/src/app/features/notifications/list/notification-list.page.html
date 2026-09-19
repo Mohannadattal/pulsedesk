@@ -1,0 +1,114 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Activity</p>
+    <h1>Notifications</h1>
+    <p>Review updates related to your support work.</p>
+  </div>
+  @if ((indicator.unreadCount() ?? 0) > 0) {
+    <button mat-button type="button" [disabled]="actionPending()" (click)="markAllRead()">
+      Mark all as read
+    </button>
+  }
+</header>
+
+<div class="toolbar" aria-label="Notification filters">
+  <button
+    mat-button
+    type="button"
+    [class.toolbar__active]="currentFilter() === 'all'"
+    [attr.aria-pressed]="currentFilter() === 'all'"
+    (click)="setFilter('all')"
+  >
+    All
+  </button>
+  <button
+    mat-button
+    type="button"
+    [class.toolbar__active]="currentFilter() === 'unread'"
+    [attr.aria-pressed]="currentFilter() === 'unread'"
+    (click)="setFilter('unread')"
+  >
+    Unread
+  </button>
+</div>
+
+@if (actionError()) {
+  <p class="action-error" role="alert">{{ actionError() }}</p>
+}
+
+@let current = state();
+@switch (current.kind) {
+  @case ('loading') {
+    <section class="initial-loading" aria-live="polite" aria-label="Loading notifications">
+      <div></div>
+      <div></div>
+      <div></div>
+      <span class="visually-hidden">Loading notifications…</span>
+    </section>
+  }
+  @case ('error') {
+    <app-page-message
+      kind="error"
+      [title]="errorTitle(current.error)"
+      detail="Try again to refresh your notification history."
+      actionLabel="Try again"
+      (action)="retry()"
+    />
+  }
+  @case ('loaded') {
+    @if (current.page.items.length === 0) {
+      <app-page-message
+        [title]="
+          current.criteria.filter === 'unread'
+            ? 'No unread notifications.'
+            : `You're all caught up.`
+        "
+        [detail]="
+          current.criteria.filter === 'unread'
+            ? 'New unread updates will appear here.'
+            : 'Updates related to your work will appear here.'
+        "
+      />
+    } @else {
+      <section class="results">
+        <div class="results__summary">
+          {{ current.page.total }}
+          {{ current.page.total === 1 ? 'notification' : 'notifications' }}
+        </div>
+        <div class="notification-list">
+          @for (notification of current.page.items; track notification.id) {
+            <app-notification-item
+              [notification]="notification"
+              [role]="session.currentUser()?.role"
+              (activate)="activate($event)"
+            />
+          }
+        </div>
+        <mat-paginator
+          [length]="current.page.total"
+          [pageIndex]="current.page.page - 1"
+          [pageSize]="current.page.pageSize"
+          [pageSizeOptions]="pageSizes"
+          showFirstLastButtons
+          aria-label="Notification pages"
+          (page)="changePage($event)"
+        />
+      </section>
+    }
+  }
+  @case ('refreshing') {
+    <section class="results" aria-busy="true">
+      <mat-progress-bar mode="indeterminate" aria-label="Refreshing notifications" />
+      <div class="results__summary">Updating…</div>
+      <div class="notification-list">
+        @for (notification of current.page.items; track notification.id) {
+          <app-notification-item
+            [notification]="notification"
+            [role]="session.currentUser()?.role"
+            (activate)="activate($event)"
+          />
+        }
+      </div>
+    </section>
+  }
+}

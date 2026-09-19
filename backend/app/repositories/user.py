@@ -8,7 +8,6 @@ from app.repositories.exceptions import (
     is_mysql_duplicate_constraint,
 )
 
-
 USER_EMAIL_UNIQUE_CONSTRAINT = "uq_users_email"
 
 
@@ -53,6 +52,17 @@ class UserRepository:
             .order_by(User.id.asc())
             .with_for_update()
             .execution_options(populate_existing=True)
+        )
+        return list(self.db.scalars(statement).all())
+
+    def list_active_admins(self) -> list[User]:
+        statement = (
+            select(User)
+            .where(
+                User.role == UserRole.ADMIN.value,
+                User.is_active.is_(True),
+            )
+            .order_by(User.id.asc())
         )
         return list(self.db.scalars(statement).all())
 

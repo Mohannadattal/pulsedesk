@@ -54,6 +54,37 @@
 
       <span class="topbar__spacer"></span>
 
+      <button
+        #notificationTrigger="matMenuTrigger"
+        class="notification-bell"
+        mat-icon-button
+        type="button"
+        [attr.aria-label]="notificationLabel()"
+        [matMenuTriggerFor]="notificationMenu"
+        (menuOpened)="preview.load()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.8"
+          />
+        </svg>
+        @if (notificationIndicator.badgeText(); as badge) {
+          <span class="notification-bell__badge" aria-hidden="true">{{ badge }}</span>
+        }
+      </button>
+      <mat-menu #notificationMenu="matMenu" class="notification-menu" xPosition="before">
+        <app-notification-preview
+          #preview
+          (navigate)="navigateFromNotification($event); notificationTrigger.closeMenu()"
+          (dismiss)="notificationTrigger.closeMenu()"
+        />
+      </mat-menu>
+
       <button class="user-menu" mat-button type="button" [matMenuTriggerFor]="userMenu">
         <span class="user-menu__avatar" aria-hidden="true">{{ initials() }}</span>
         <span class="user-menu__name">

@@ -132,6 +132,36 @@
   flex: 1;
 }
 
+.notification-bell {
+  position: relative;
+  flex: 0 0 auto;
+  margin-right: var(--pd-space-2);
+  color: var(--pd-color-text-muted);
+}
+
+.notification-bell svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.notification-bell__badge {
+  position: absolute;
+  top: 0.05rem;
+  right: -0.1rem;
+  display: grid;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  place-items: center;
+  padding: 0 0.22rem;
+  border: 2px solid var(--pd-color-surface);
+  border-radius: 999px;
+  background: var(--pd-color-action);
+  color: white;
+  font-size: 0.58rem;
+  font-weight: 750;
+  line-height: 1;
+}
+
 .menu-lines,
 .menu-lines::before,
 .menu-lines::after {

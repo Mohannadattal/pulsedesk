@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 import app.models  # noqa: F401
 from app.database.base import Base
-from app.exceptions.auth import AuthorizationError
 from app.exceptions.customer import (
     CustomerVerificationInvalidError,
     CustomerVerificationNotFoundError,
@@ -110,7 +109,13 @@ class TicketSearchTests(unittest.TestCase):
             db.add_all(
                 [
                     self.ticket(40, "TKT-4ZFUPC6W7ZFJDEWY", "Outlook search", 20),
-                    self.ticket(41, "TKT-AAAAAAAAAAAAAAAA", "Outlook cannot send", 21),
+                    self.ticket(
+                        41,
+                        "TKT-AAAAAAAAAAAAAAAA",
+                        "Outlook cannot send",
+                        21,
+                        created_by_id=2,
+                    ),
                     self.ticket(42, "TKT-BBBBBBBBBBBBBBBB", "Printer offline", None),
                     self.ticket(
                         43,
@@ -118,6 +123,13 @@ class TicketSearchTests(unittest.TestCase):
                         "outlook calendar",
                         20,
                         created_at=self.now + timedelta(minutes=1),
+                    ),
+                    self.ticket(
+                        44,
+                        "TKT-DDDDDDDDDDDDDDDD",
+                        "Payroll private",
+                        None,
+                        created_by_id=2,
                     ),
                 ]
             )
@@ -168,6 +180,7 @@ class TicketSearchTests(unittest.TestCase):
         customer_id: int | None,
         *,
         created_at: datetime | None = None,
+        created_by_id: int = 1,
     ) -> Ticket:
         timestamp = created_at or self.now
         return Ticket(
@@ -178,7 +191,7 @@ class TicketSearchTests(unittest.TestCase):
             status="OPEN",
             priority="MEDIUM",
             category_id=10,
-            created_by_id=1,
+            created_by_id=created_by_id,
             assigned_to_id=None,
             customer_id=customer_id,
             customer_verification_id=30 if customer_id == 20 else None,
@@ -310,10 +323,22 @@ class TicketSearchTests(unittest.TestCase):
             self.assertEqual(first.items[0].id, 43)
             self.assertEqual(second.items[0].id, 41)
             self.assertIsNone(exact.items[0].customer)
-            with self.assertRaises(AuthorizationError):
-                service.search_tickets(
-                    TicketSearchRequest(kind="TITLE", value="Outlook"), employee
-                )
+            employee_results = service.search_tickets(
+                TicketSearchRequest(kind="TITLE", value="Outlook"), employee
+            )
+            self.assertEqual(
+                [ticket.id for ticket in employee_results.items],
+                [43, 41, 40],
+            )
+            unauthorized = service.search_tickets(
+                TicketSearchRequest(
+                    kind="TICKET_NUMBER",
+                    value="TKT-DDDDDDDDDDDDDDDD",
+                ),
+                employee,
+            )
+            self.assertEqual(unauthorized.total, 0)
+            self.assertEqual(unauthorized.items, [])
 
 
 if __name__ == "__main__":

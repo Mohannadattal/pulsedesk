@@ -32,6 +32,13 @@ export const routes: Routes = [
       import('./shell/app-shell/app-shell.component').then((shell) => shell.AppShellComponent),
     children: [
       {
+        path: 'notifications',
+        loadChildren: () =>
+          import('./features/notifications/notifications.routes').then(
+            (routes) => routes.NOTIFICATION_ROUTES,
+          ),
+      },
+      {
         path: 'tickets',
         loadChildren: () =>
           import('./features/tickets/tickets.routes').then((routes) => routes.TICKET_ROUTES),

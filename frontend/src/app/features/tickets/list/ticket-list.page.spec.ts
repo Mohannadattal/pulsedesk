@@ -103,7 +103,7 @@ describe('TicketListPage canonical URL state', () => {
 
   beforeEach(() => vi.clearAllMocks());
 
-  it('removes Employee support filters and keeps them out of the backend request', async () => {
+  it('starts EMPLOYEE search-first without queue or reference-data requests', async () => {
     await render(UserRole.EMPLOYEE, {
       status: 'OPEN',
       categoryId: '4',
@@ -112,100 +112,92 @@ describe('TicketListPage canonical URL state', () => {
       page: '3',
     });
 
-    expect(tickets.list).toHaveBeenCalledWith({
-      status: TicketStatus.OPEN,
-      priority: undefined,
-      categoryId: undefined,
-      assignedToId: undefined,
-      unassigned: undefined,
-      page: 3,
-      pageSize: 20,
-    });
-    expect(router.navigate).toHaveBeenCalledWith([], {
-      relativeTo: route,
-      queryParams: expect.objectContaining({
-        status: TicketStatus.OPEN,
-        categoryId: null,
-        assignedToId: null,
-        unassigned: null,
-        page: 3,
-      }),
-      replaceUrl: true,
-    });
+    expect(tickets.list).not.toHaveBeenCalled();
     expect(tickets.listActiveCategories).not.toHaveBeenCalled();
     expect(tickets.listActiveAgents).not.toHaveBeenCalled();
+    expect(tickets.search).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(fixture.componentInstance['state']().kind).toBe('idle');
+    expect(fixture.nativeElement.textContent).toContain('Find ticket');
+    expect(fixture.nativeElement.textContent).toContain('Find a ticket');
+    expect(fixture.nativeElement.textContent).not.toContain('My tickets');
+    expect(fixture.nativeElement.textContent).not.toContain('Track the requests you have raised');
+    expect(fixture.nativeElement.textContent).toContain('Create ticket');
+    expect(fixture.nativeElement.querySelector('.filters')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.ticket-table')).toBeNull();
   });
 
-  it('does not preserve hidden support filters when an Employee changes a visible filter', async () => {
-    await render(UserRole.EMPLOYEE, { categoryId: '4', assignedToId: '5', page: '8' });
-    router.navigate.mockClear();
+  it('EMPLOYEE title search clears the draft and preserves its executed query for pagination', async () => {
+    await render(UserRole.EMPLOYEE, {});
+    const result = { ...EXACT_PAGE, total: 40, totalPages: 2 };
+    tickets.search.mockReturnValue(of(result));
+    fixture.componentInstance['searchForm'].setValue({
+      kind: TicketSearchKind.TITLE,
+      value: 'Outlook',
+    });
 
-    fixture.componentInstance['filterForm'].controls.priority.setValue(TicketPriority.HIGH);
-    fixture.componentInstance['applyFilters']();
+    fixture.componentInstance['executeSearch']();
+    fixture.componentInstance['changeSearchPage']({
+      pageIndex: 1,
+      pageSize: 20,
+      length: 40,
+      previousPageIndex: 0,
+    });
 
-    expect(router.navigate).toHaveBeenCalledWith([], {
-      relativeTo: route,
-      queryParams: expect.objectContaining({
-        priority: TicketPriority.HIGH,
-        categoryId: null,
-        assignedToId: null,
-        unassigned: null,
-        page: null,
-      }),
+    expect(fixture.componentInstance['searchForm'].controls.value.value).toBe('');
+    expect(fixture.componentInstance['executedSearch']).toEqual({
+      kind: TicketSearchKind.TITLE,
+      value: 'Outlook',
+      pageSize: 20,
+    });
+    expect(tickets.search).toHaveBeenNthCalledWith(1, TicketSearchKind.TITLE, 'Outlook', 1, 20);
+    expect(tickets.search).toHaveBeenNthCalledWith(2, TicketSearchKind.TITLE, 'Outlook', 2, 20);
+    expect(tickets.list).not.toHaveBeenCalled();
+  });
+
+  it('EMPLOYEE failed search retains its draft and previous executed search', async () => {
+    await render(UserRole.EMPLOYEE, {});
+    fixture.componentInstance['searchForm'].setValue({
+      kind: TicketSearchKind.TITLE,
+      value: 'Outlook',
+    });
+    fixture.componentInstance['executeSearch']();
+    tickets.search.mockReturnValueOnce(throwError(() => new Error('search failed')));
+    fixture.componentInstance['searchForm'].setValue({
+      kind: TicketSearchKind.TITLE,
+      value: 'Printer',
+    });
+
+    fixture.componentInstance['executeSearch']();
+
+    expect(fixture.componentInstance['searchState']().kind).toBe('error');
+    expect(fixture.componentInstance['searchForm'].controls.value.value).toBe('Printer');
+    expect(fixture.componentInstance['executedSearch']).toEqual({
+      kind: TicketSearchKind.TITLE,
+      value: 'Outlook',
+      pageSize: 20,
     });
   });
 
-  it('removes invalid and explicit default URL values', async () => {
-    await render(UserRole.EMPLOYEE, {
-      status: 'PENDING',
-      priority: 'CRITICAL',
-      categoryId: '-4',
-      assignedToId: 'nope',
-      unassigned: 'maybe',
-      page: '1',
-      pageSize: '20',
+  it('EMPLOYEE Clear and repeated Clear remain idle without loading a queue', async () => {
+    await render(UserRole.EMPLOYEE, {});
+    fixture.componentInstance['searchForm'].setValue({
+      kind: TicketSearchKind.TITLE,
+      value: 'Outlook',
     });
+    fixture.componentInstance['executeSearch']();
 
-    expect(router.navigate).toHaveBeenCalledWith([], {
-      relativeTo: route,
-      queryParams: {
-        status: null,
-        priority: null,
-        categoryId: null,
-        assignedToId: null,
-        unassigned: null,
-        page: null,
-        pageSize: null,
-      },
-      replaceUrl: true,
-    });
-    expect(tickets.list).toHaveBeenCalledWith(expect.objectContaining({ page: 1, pageSize: 20 }));
-  });
+    fixture.componentInstance['clearSearch']();
+    fixture.componentInstance['clearSearch']();
+    fixture.detectChanges();
 
-  it('resets the page on a filter change', async () => {
-    await render(UserRole.EMPLOYEE, { page: '7' });
-    router.navigate.mockClear();
-
-    fixture.componentInstance['filterForm'].controls.status.setValue(TicketStatus.RESOLVED);
-    fixture.componentInstance['applyFilters']();
-
-    expect(router.navigate).toHaveBeenCalledWith([], {
-      relativeTo: route,
-      queryParams: expect.objectContaining({ status: TicketStatus.RESOLVED, page: null }),
-    });
-  });
-
-  it('uses replace semantics once and does not reload when the canonical URL arrives', async () => {
-    await render(UserRole.EMPLOYEE, { status: 'INVALID', page: '1' });
-    expect(router.navigate).toHaveBeenCalledOnce();
-    expect(tickets.list).toHaveBeenCalledOnce();
-
-    const canonical = convertToParamMap({});
-    route.snapshot.queryParamMap = canonical;
-    queryParams.next(canonical);
-
-    expect(router.navigate).toHaveBeenCalledOnce();
-    expect(tickets.list).toHaveBeenCalledOnce();
+    expect(fixture.componentInstance['searchState']().kind).toBe('idle');
+    expect(fixture.componentInstance['searchForm'].controls.value.value).toBe('');
+    expect(fixture.componentInstance['executedSearch']).toBeNull();
+    expect(fixture.nativeElement.querySelector('.ticket-table')).toBeNull();
+    expect(tickets.list).not.toHaveBeenCalled();
+    expect(tickets.listActiveCategories).not.toHaveBeenCalled();
+    expect(tickets.listActiveAgents).not.toHaveBeenCalled();
   });
 
   it('starts AGENT search-first without loading the queue or queue reference data', async () => {
@@ -346,8 +338,8 @@ describe('TicketListPage canonical URL state', () => {
     expect(fixture.nativeElement.querySelector('.ticket-table')).toBeNull();
   });
 
-  it('AGENT exact Ticket Number search still navigates directly to Ticket Detail', async () => {
-    await render(UserRole.AGENT, {});
+  it('EMPLOYEE exact Ticket Number search navigates directly to authorized Ticket Detail', async () => {
+    await render(UserRole.EMPLOYEE, {});
     tickets.search.mockReturnValueOnce(of(EXACT_PAGE));
     fixture.componentInstance['searchForm'].setValue({
       kind: TicketSearchKind.TICKET_NUMBER,

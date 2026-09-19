@@ -1,0 +1,50 @@
+<article
+  class="notification"
+  [class.notification--unread]="!notification().isRead"
+  [class.notification--compact]="compact()"
+>
+  <button
+    class="notification__action"
+    type="button"
+    [attr.aria-label]="actionLabel()"
+    [disabled]="!hasTarget() && notification().isRead"
+    (click)="activate.emit(notification())"
+  >
+    <span class="notification__content">
+      <span class="notification__heading">
+        @if (!notification().isRead) {
+          <span class="notification__unread-dot" aria-hidden="true"></span>
+          <span class="visually-hidden">Unread: </span>
+        }
+        <strong>{{ notification().title }}</strong>
+      </span>
+
+      @if (notification().ticket; as ticket) {
+        <span class="notification__ticket">
+          <span class="notification__ticket-number">{{ ticket.number }}</span>
+          <span class="notification__ticket-title">{{ ticket.title }}</span>
+        </span>
+      }
+
+      @if (actorLabel(); as actor) {
+        <span class="notification__actor">{{ actor }}</span>
+      }
+
+      <time
+        class="notification__time"
+        [attr.datetime]="notification().createdAt.toISOString()"
+        [attr.title]="notification().createdAt | localDateTime: 'full'"
+      >
+        {{ notification().createdAt | localDateTime }}
+      </time>
+    </span>
+
+    <span class="notification__operation">
+      @if (hasTarget()) {
+        Open
+      } @else if (!notification().isRead) {
+        Mark read
+      }
+    </span>
+  </button>
+</article>

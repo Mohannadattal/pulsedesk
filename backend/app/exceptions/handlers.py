@@ -35,6 +35,7 @@ from app.exceptions.database import (
     classify_database_error,
     get_mysql_error_code,
 )
+from app.exceptions.notification import NotificationNotFoundError
 from app.exceptions.password_reset_request import (
     PasswordResetRequestNotFoundError,
     PasswordResetRequestResolvedError,
@@ -76,6 +77,11 @@ FRAMEWORK_ERROR_DETAILS: dict[int, tuple[ErrorCode, str]] = {
 }
 
 DOMAIN_ERROR_DETAILS: dict[type[Exception], tuple[int, ErrorCode, str]] = {
+    NotificationNotFoundError: (
+        status.HTTP_404_NOT_FOUND,
+        ErrorCode.NOTIFICATION_NOT_FOUND,
+        "Notification was not found.",
+    ),
     UserAlreadyExistsError: (
         status.HTTP_409_CONFLICT,
         ErrorCode.USER_ALREADY_EXISTS,

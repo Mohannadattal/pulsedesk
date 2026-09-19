@@ -11,6 +11,8 @@ api/customers.service.ts
 api/customers.serviceInterface.ts
 api/health.service.ts
 api/health.serviceInterface.ts
+api/notifications.service.ts
+api/notifications.serviceInterface.ts
 api/tickets.service.ts
 api/tickets.serviceInterface.ts
 api/users.service.ts
@@ -45,6 +47,12 @@ model/errorCode.ts
 model/errorResponse.ts
 model/loginRequest.ts
 model/models.ts
+model/notificationListResponse.ts
+model/notificationReadAllResponse.ts
+model/notificationResponse.ts
+model/notificationTicketReference.ts
+model/notificationType.ts
+model/notificationUnreadCountResponse.ts
 model/passwordResetRequestAcceptedResponse.ts
 model/passwordResetRequestCreate.ts
 model/passwordResetRequestListResponse.ts

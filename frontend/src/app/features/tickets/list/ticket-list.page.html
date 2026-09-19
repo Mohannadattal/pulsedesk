@@ -1,25 +1,19 @@
 <header class="page-header">
   <div>
     <p class="eyebrow">Ticket operations</p>
-    <h1>{{ session.currentUser()?.role === 'EMPLOYEE' ? 'My tickets' : 'Tickets' }}</h1>
-    <p class="page-header__description">
-      {{
-        session.currentUser()?.role === 'EMPLOYEE'
-          ? 'Track the requests you have raised.'
-          : 'Review and coordinate incoming support work.'
-      }}
-    </p>
+    <h1>Tickets</h1>
+    <p class="page-header__description">Find tickets in your authorized scope.</p>
   </div>
   @if (session.currentUser()?.role !== 'AGENT') {
     <a mat-flat-button routerLink="/tickets/new">Create ticket</a>
   }
 </header>
 
-@if (isSupport) {
+@if (isSearchFirst) {
   <section class="ticket-search" aria-labelledby="ticket-search-heading">
     <div>
       <h2 id="ticket-search-heading">Find ticket</h2>
-      <p>Search the internal ticket scope by exact number or title prefix.</p>
+      <p>Search your authorized ticket scope by exact number or title prefix.</p>
     </div>
     <form [formGroup]="searchForm" (ngSubmit)="executeSearch()">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -46,7 +40,7 @@
 }
 
 @if (searchState().kind === 'idle') {
-  @if (isSupport) {
+  @if (isSearchFirst) {
     <app-page-message
       title="Find a ticket"
       detail="Search by ticket number or title to view tickets in your authorized scope."

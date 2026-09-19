@@ -113,7 +113,8 @@ def search_tickets(
     data: TicketSearchRequest,
     ticket_service: Annotated[TicketService, Depends(get_ticket_service)],
     current_user: Annotated[
-        User, Depends(require_roles(UserRole.AGENT, UserRole.ADMIN))
+        User,
+        Depends(require_roles(UserRole.EMPLOYEE, UserRole.AGENT, UserRole.ADMIN)),
     ],
 ) -> TicketListResponse:
     return ticket_service.search_tickets(data, current_user)
