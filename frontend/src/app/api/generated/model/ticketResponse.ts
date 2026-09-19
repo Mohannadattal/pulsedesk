@@ -28,6 +28,7 @@ export interface TicketResponse {
   description: string;
   id: number;
   priority: TicketPriority;
+  resolution_summary: string | null;
   resolved_at: string | null;
   status: TicketStatus;
   ticket_number: string;

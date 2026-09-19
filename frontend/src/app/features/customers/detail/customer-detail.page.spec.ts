@@ -56,6 +56,7 @@ const TICKET: Ticket = {
   assignee: null,
   customer: { id: 8, name: 'Thomas Müller', customerNumber: CUSTOMER.customerNumber },
   customerWasVerified: true,
+  resolutionSummary: null,
   createdAt: new Date('2026-09-18T08:00:00Z'),
   updatedAt: new Date('2026-09-18T08:00:00Z'),
   resolvedAt: null,

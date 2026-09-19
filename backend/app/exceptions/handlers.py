@@ -43,6 +43,7 @@ from app.exceptions.password_reset_request import (
 )
 from app.exceptions.ticket import (
     CustomerTicketNotFoundError,
+    InvalidResolutionSummaryError,
     InvalidTicketAssigneeError,
     InvalidTicketFilterError,
     InvalidTicketStatusTransitionError,
@@ -166,6 +167,11 @@ DOMAIN_ERROR_DETAILS: dict[type[Exception], tuple[int, ErrorCode, str]] = {
         status.HTTP_422_UNPROCESSABLE_CONTENT,
         ErrorCode.INVALID_TICKET_FILTER,
         "Ticket filters are invalid.",
+    ),
+    InvalidResolutionSummaryError: (
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        ErrorCode.INVALID_RESOLUTION_SUMMARY,
+        "Resolution summary must contain between 1 and 2000 characters.",
     ),
     CustomerNotFoundError: (
         status.HTTP_404_NOT_FOUND,

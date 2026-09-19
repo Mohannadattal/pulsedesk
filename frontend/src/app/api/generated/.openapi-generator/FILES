@@ -67,6 +67,7 @@ model/response422LookupCustomerTicket.ts
 model/response422SearchCustomers.ts
 model/response422UpdateCustomer.ts
 model/response422UpdateTicketAssignment.ts
+model/response422UpdateTicketStatus.ts
 model/sessionType.ts
 model/ticketAssignmentUpdate.ts
 model/ticketCategoryUpdate.ts

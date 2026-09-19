@@ -68,6 +68,13 @@
             </dl>
           </aside>
 
+          @if (ticket.resolutionSummary; as resolutionSummary) {
+            <section class="detail-section resolution" aria-labelledby="resolution-heading">
+              <h2 id="resolution-heading">Resolution summary</h2>
+              <p>{{ resolutionSummary }}</p>
+            </section>
+          }
+
           @if (ticket.customer; as customer) {
             <section class="detail-section customer-context" aria-labelledby="customer-heading">
               <h2 id="customer-heading">Customer</h2>

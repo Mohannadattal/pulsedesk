@@ -11,6 +11,7 @@ from app.database.base import Base
 if TYPE_CHECKING:
     from app.models.category import Category
     from app.models.customer import Customer
+    from app.models.customer_email_delivery import CustomerEmailDelivery
     from app.models.customer_verification import CustomerVerification
     from app.models.notification import Notification
     from app.models.ticket_comment import TicketComment
@@ -102,6 +103,8 @@ class Ticket(Base):
         Text,
         nullable=False,
     )
+
+    resolution_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     status: Mapped[str] = mapped_column(
         String(20),
@@ -199,6 +202,10 @@ class Ticket(Base):
     )
 
     notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="ticket",
+    )
+
+    customer_email_deliveries: Mapped[list["CustomerEmailDelivery"]] = relationship(
         back_populates="ticket",
     )
 

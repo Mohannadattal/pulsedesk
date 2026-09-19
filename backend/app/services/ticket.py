@@ -14,6 +14,7 @@ from app.exceptions.customer import (
 )
 from app.exceptions.ticket import (
     CustomerTicketNotFoundError,
+    InvalidResolutionSummaryError,
     InvalidTicketAssigneeError,
     InvalidTicketFilterError,
     InvalidTicketStatusTransitionError,
@@ -27,6 +28,7 @@ from app.models.ticket_event import TicketEventType
 from app.models.user import User, UserRole
 from app.repositories.category import CategoryRepository
 from app.repositories.customer import CustomerRepository
+from app.repositories.customer_email_delivery import CustomerEmailDeliveryRepository
 from app.repositories.customer_verification import CustomerVerificationRepository
 from app.repositories.exceptions import DuplicateTicketNumberError
 from app.repositories.ticket import TicketRepository
@@ -38,6 +40,7 @@ from app.schemas.ticket import (
     TicketListResponse,
     TicketSearchRequest,
 )
+from app.services.customer_email_delivery import CustomerEmailOutboxService
 from app.services.notification import NotificationService
 from app.services.ticket_event import TicketEventRecorder, display_name
 from app.utils.time import utc_now_naive
@@ -66,6 +69,7 @@ class TicketService:
         customer_repository: CustomerRepository | None = None,
         customer_verification_repository: CustomerVerificationRepository | None = None,
         notification_service: NotificationService | None = None,
+        customer_email_outbox_service: CustomerEmailOutboxService | None = None,
     ) -> None:
         self.db = db
         self.ticket_repository = ticket_repository
@@ -77,6 +81,13 @@ class TicketService:
             customer_verification_repository or CustomerVerificationRepository(db)
         )
         self.notification_service = notification_service
+        self.customer_email_outbox_service = (
+            customer_email_outbox_service
+            or CustomerEmailOutboxService(
+                db,
+                CustomerEmailDeliveryRepository(db),
+            )
+        )
 
     def create_ticket(self, data: TicketCreate, actor: User) -> Ticket:
         if actor.role not in {UserRole.EMPLOYEE.value, UserRole.ADMIN.value}:
@@ -102,8 +113,14 @@ class TicketService:
                     updated_at=now,
                     resolved_at=None,
                     closed_at=None,
+                    resolution_summary=None,
                 )
                 ticket = self.ticket_repository.save(ticket)
+                self.customer_email_outbox_service.stage_ticket_created(
+                    ticket,
+                    customer,
+                    created_at=now,
+                )
                 self.ticket_event_recorder.record(
                     ticket_id=ticket.id,
                     actor=actor,
@@ -374,6 +391,8 @@ class TicketService:
         ticket_id: int,
         requested_status: TicketStatus,
         actor: User,
+        *,
+        resolution_summary: str | None = None,
     ) -> Ticket:
         self._require_support(actor)
         try:
@@ -384,11 +403,17 @@ class TicketService:
                     requested_status,
                 )
 
+            normalized_resolution = self._validate_resolution_summary(
+                requested_status,
+                resolution_summary,
+            )
+
             now = utc_now_naive()
             old_status = ticket.status
             ticket.status = requested_status.value
             if requested_status == TicketStatus.RESOLVED:
                 ticket.resolved_at = now
+                ticket.resolution_summary = normalized_resolution
             elif requested_status == TicketStatus.CLOSED:
                 ticket.closed_at = now
             lifecycle_event_type = None
@@ -402,6 +427,20 @@ class TicketService:
                     ticket,
                     actor,
                     requested_status,
+                )
+
+            if requested_status == TicketStatus.RESOLVED:
+                customer = (
+                    self.customer_repository.get_by_id_for_update(ticket.customer_id)
+                    if ticket.customer_id is not None
+                    else None
+                )
+                assert normalized_resolution is not None
+                self.customer_email_outbox_service.stage_ticket_resolved(
+                    ticket,
+                    customer,
+                    resolution_summary=normalized_resolution,
+                    created_at=now,
                 )
 
             return self._save_and_commit(
@@ -557,6 +596,22 @@ class TicketService:
     @staticmethod
     def _serialize_id(value: int | None) -> str | None:
         return str(value) if value is not None else None
+
+    @staticmethod
+    def _validate_resolution_summary(
+        requested_status: TicketStatus,
+        resolution_summary: str | None,
+    ) -> str | None:
+        if requested_status != TicketStatus.RESOLVED:
+            if resolution_summary is not None:
+                raise InvalidResolutionSummaryError
+            return None
+        if resolution_summary is None:
+            raise InvalidResolutionSummaryError
+        normalized = resolution_summary.strip()
+        if not normalized or len(normalized) > 2000:
+            raise InvalidResolutionSummaryError
+        return normalized
 
     @staticmethod
     def _require_support(actor: User) -> None:

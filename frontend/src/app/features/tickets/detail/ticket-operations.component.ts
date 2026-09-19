@@ -9,9 +9,17 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import {
+  AbstractControl,
+  FormControl,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { catchError, forkJoin, map, Observable, of, take, tap } from 'rxjs';
@@ -31,6 +39,7 @@ type OperationKind = 'assignment' | 'status' | 'priority' | 'category';
 interface MutationIntent {
   readonly kind: OperationKind;
   readonly value: number | null | TicketStatus | TicketPriority;
+  readonly resolutionSummary?: string;
 }
 
 type RecoveryOutcome<T> =
@@ -43,6 +52,10 @@ const NEXT_STATUS: Partial<Record<TicketStatus, TicketStatus>> = {
   [TicketStatus.RESOLVED]: TicketStatus.CLOSED,
 };
 
+const RESOLUTION_SUMMARY_MAX_LENGTH = 2_000;
+const nonWhitespace: ValidatorFn = (control: AbstractControl<string>): ValidationErrors | null =>
+  control.value.trim().length > 0 ? null : { whitespace: true };
+
 export function canOperateTicket(role: UserRole | undefined): boolean {
   return role === UserRole.AGENT || role === UserRole.ADMIN;
 }
@@ -52,6 +65,7 @@ export function canOperateTicket(role: UserRole | undefined): boolean {
   imports: [
     MatButtonModule,
     MatFormFieldModule,
+    MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
     ReactiveFormsModule,
@@ -78,12 +92,22 @@ export class TicketOperationsComponent {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
   protected readonly retryIntent = signal<MutationIntent | null>(null);
+  protected readonly resolutionFormOpen = signal(false);
 
   protected readonly assignment = new FormControl<number | null>(null);
   protected readonly priority = new FormControl<TicketPriority>(TicketPriority.MEDIUM, {
     nonNullable: true,
   });
   protected readonly category = new FormControl<number | null>(null);
+  protected readonly resolutionSummary = new FormControl('', {
+    nonNullable: true,
+    validators: [
+      Validators.required,
+      nonWhitespace,
+      Validators.maxLength(RESOLUTION_SUMMARY_MAX_LENGTH),
+    ],
+  });
+  protected readonly resolutionSummaryMaxLength = RESOLUTION_SUMMARY_MAX_LENGTH;
 
   constructor() {
     effect(() => {
@@ -119,9 +143,42 @@ export class TicketOperationsComponent {
 
   protected advanceStatus(): void {
     const status = this.nextStatus();
-    if (status) {
+    if (status === TicketStatus.RESOLVED) {
+      this.openResolutionForm();
+    } else if (status) {
       this.mutate({ kind: 'status', value: status });
     }
+  }
+
+  protected openResolutionForm(): void {
+    if (!this.controlsDisabled) {
+      this.errorMessage.set(null);
+      this.successMessage.set(null);
+      this.resolutionFormOpen.set(true);
+    }
+  }
+
+  protected cancelResolution(): void {
+    if (this.busyOperation() !== null) {
+      return;
+    }
+    this.resolutionFormOpen.set(false);
+    this.resolutionSummary.reset();
+    this.errorMessage.set(null);
+    this.retryIntent.set(null);
+  }
+
+  protected resolveTicket(event?: Event): void {
+    event?.preventDefault();
+    this.resolutionSummary.markAsTouched();
+    if (this.resolutionSummary.invalid || this.controlsDisabled) {
+      return;
+    }
+    this.mutate({
+      kind: 'status',
+      value: TicketStatus.RESOLVED,
+      resolutionSummary: this.resolutionSummary.value.trim(),
+    });
   }
 
   protected updatePriority(): void {
@@ -194,7 +251,13 @@ export class TicketOperationsComponent {
         next: (ticket) => {
           this.busyOperation.set(null);
           this.ticketUpdated.emit(ticket);
-          this.successMessage.set(this.successFor(intent.kind));
+          if (intent.kind === 'status' && intent.value === TicketStatus.RESOLVED) {
+            this.resolutionFormOpen.set(false);
+            this.resolutionSummary.reset();
+            this.successMessage.set('Ticket resolved.');
+          } else {
+            this.successMessage.set(this.successFor(intent.kind));
+          }
         },
         error: (error: unknown) => this.handleMutationError(intent, normalizeHttpError(error)),
       });
@@ -205,8 +268,12 @@ export class TicketOperationsComponent {
     switch (intent.kind) {
       case 'assignment':
         return this.tickets.updateAssignment(ticketId, intent.value as number | null);
-      case 'status':
-        return this.tickets.updateStatus(ticketId, intent.value as TicketStatus);
+      case 'status': {
+        const status = intent.value as TicketStatus;
+        return status === TicketStatus.RESOLVED
+          ? this.tickets.updateStatus(ticketId, status, intent.resolutionSummary)
+          : this.tickets.updateStatus(ticketId, status);
+      }
       case 'priority':
         return this.tickets.updatePriority(ticketId, intent.value as TicketPriority);
       case 'category':
@@ -269,6 +336,16 @@ export class TicketOperationsComponent {
     }
 
     this.busyOperation.set(null);
+    if (
+      intent.kind === 'status' &&
+      intent.value === TicketStatus.RESOLVED &&
+      error.code === 'INVALID_RESOLUTION_SUMMARY'
+    ) {
+      this.errorMessage.set(
+        'Enter a customer-facing resolution summary between 1 and 2,000 characters.',
+      );
+      return;
+    }
     if (error.kind === 'forbidden') {
       this.errorMessage.set(`You do not have permission to change this ticket’s ${intent.kind}.`);
       return;
@@ -281,7 +358,9 @@ export class TicketOperationsComponent {
       return;
     }
     if (error.kind === 'network' || error.kind === 'unavailable') {
-      this.retryIntent.set(intent);
+      if (!(intent.kind === 'status' && intent.value === TicketStatus.RESOLVED)) {
+        this.retryIntent.set(intent);
+      }
       this.errorMessage.set(
         error.kind === 'network'
           ? 'PulseDesk could not be reached. The last confirmed ticket is still shown.'

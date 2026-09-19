@@ -26,6 +26,10 @@ class InvalidTicketFilterError(Exception):
     """Raised when ticket list filters contradict one another."""
 
 
+class InvalidResolutionSummaryError(Exception):
+    """Raised when a resolution lacks valid customer-facing plain text."""
+
+
 class TicketNumberAllocationError(Exception):
     def __init__(self, attempt_count: int) -> None:
         self.attempt_count = attempt_count

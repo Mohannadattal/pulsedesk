@@ -25,6 +25,7 @@ const TICKET: Ticket = {
   assignee: null,
   customer: null,
   customerWasVerified: false,
+  resolutionSummary: null,
   createdAt: new Date('2026-09-15T08:00:00Z'),
   updatedAt: new Date('2026-09-15T08:00:00Z'),
   resolvedAt: null,
@@ -76,6 +77,23 @@ describe('TicketDetailPage activity access', () => {
 
     expect(fixture.nativeElement.querySelector('app-ticket-activity')).toBeNull();
     expect(tickets.listActivity).not.toHaveBeenCalled();
+  });
+
+  it('renders an existing resolution summary read-only for an Employee', async () => {
+    tickets.get.mockReturnValueOnce(
+      of({
+        ...TICKET,
+        status: TicketStatus.RESOLVED,
+        resolutionSummary: 'Restored access and confirmed the account is working.',
+      }),
+    );
+
+    const fixture = await render(UserRole.EMPLOYEE);
+
+    expect(fixture.nativeElement.querySelector('.resolution')?.textContent).toContain(
+      'Restored access and confirmed the account is working.',
+    );
+    expect(fixture.nativeElement.querySelector('app-ticket-operations')).toBeNull();
   });
 
   it('refreshes Activity after successful local mutations and comments', async () => {

@@ -758,7 +758,12 @@ class TicketEventMutationTests(TicketEventTestCase):
         service = self.ticket_service(db)
 
         service.update_status(100, TicketStatus.IN_PROGRESS, actor)
-        service.update_status(100, TicketStatus.RESOLVED, actor)
+        service.update_status(
+            100,
+            TicketStatus.RESOLVED,
+            actor,
+            resolution_summary="The printer connection was restored.",
+        )
         service.update_status(100, TicketStatus.CLOSED, actor)
 
         ascending = self.list_events(db)

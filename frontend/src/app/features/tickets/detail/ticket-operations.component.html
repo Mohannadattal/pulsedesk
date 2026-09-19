@@ -114,6 +114,56 @@
     </div>
   </div>
 
+  @if (resolutionFormOpen()) {
+    <form class="resolution-form" (submit)="resolveTicket($event)" novalidate>
+      <div>
+        <h3>Resolve ticket</h3>
+        <p>This summary is customer-facing and may be included in the resolution email.</p>
+      </div>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Resolution summary</mat-label>
+        <textarea
+          matInput
+          [formControl]="resolutionSummary"
+          rows="6"
+          required
+          aria-describedby="resolution-guidance"
+        ></textarea>
+        <mat-hint id="resolution-guidance"
+          >Customer-facing summary of how the issue was resolved.</mat-hint
+        >
+        <mat-hint align="end"
+          >{{ resolutionSummary.value.length }} / {{ resolutionSummaryMaxLength }}</mat-hint
+        >
+        @if (resolutionSummary.hasError('maxlength')) {
+          <mat-error>Use 2,000 characters or fewer.</mat-error>
+        } @else if (
+          resolutionSummary.touched &&
+          (resolutionSummary.hasError('required') || resolutionSummary.hasError('whitespace'))
+        ) {
+          <mat-error>Enter a resolution summary.</mat-error>
+        }
+      </mat-form-field>
+      <div class="resolution-form__actions">
+        <button
+          mat-button
+          type="button"
+          [disabled]="busyOperation() !== null"
+          (click)="cancelResolution()"
+        >
+          Cancel
+        </button>
+        <button
+          mat-flat-button
+          type="submit"
+          [disabled]="resolutionSummary.invalid || controlsDisabled"
+        >
+          Resolve ticket
+        </button>
+      </div>
+    </form>
+  }
+
   @if (errorMessage()) {
     <div class="operation-error" role="alert">
       <span>{{ errorMessage() }}</span>

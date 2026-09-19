@@ -16,6 +16,7 @@ describe('mapTicket Customer projection', () => {
     created_by: { id: 4, first_name: 'Eli', last_name: 'Employee' },
     assigned_to_id: null,
     assigned_to: null,
+    resolution_summary: null,
     created_at: '2026-09-18T08:00:00Z',
     updated_at: '2026-09-18T08:00:00Z',
     resolved_at: null,
@@ -42,5 +43,17 @@ describe('mapTicket Customer projection', () => {
       customer_was_verified: false,
     });
     expect(ticket.customer).toBeNull();
+  });
+
+  it('maps the stored customer-facing resolution summary', () => {
+    const ticket = mapTicket({
+      ...base,
+      customer_id: null,
+      customer: null,
+      customer_was_verified: false,
+      resolution_summary: 'Reconfigured the account and verified access.',
+    });
+
+    expect(ticket.resolutionSummary).toBe('Reconfigured the account and verified access.');
   });
 });

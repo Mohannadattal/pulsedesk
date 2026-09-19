@@ -1,5 +1,6 @@
 # Environment
 .env
+.docker-compose.smtp-local.yml
 
 # Python
 __pycache__/

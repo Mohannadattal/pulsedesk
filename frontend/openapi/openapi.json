@@ -1050,6 +1050,7 @@
           "INVALID_TICKET_STATUS_TRANSITION",
           "INVALID_TICKET_ASSIGNEE",
           "INVALID_TICKET_FILTER",
+          "INVALID_RESOLUTION_SUMMARY",
           "NOTIFICATION_NOT_FOUND",
           "CUSTOMER_NOT_FOUND",
           "CUSTOMER_INACTIVE",
@@ -2019,6 +2020,17 @@
           "priority": {
             "$ref": "#/components/schemas/TicketPriority"
           },
+          "resolution_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Summary"
+          },
           "resolved_at": {
             "anyOf": [
               {
@@ -2053,6 +2065,7 @@
           "ticket_number",
           "title",
           "description",
+          "resolution_summary",
           "status",
           "priority",
           "category_id",
@@ -2126,6 +2139,18 @@
       "TicketStatusUpdate": {
         "additionalProperties": false,
         "properties": {
+          "resolution_summary": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Summary"
+          },
           "status": {
             "$ref": "#/components/schemas/TicketStatus"
           }
@@ -6282,11 +6307,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ValidationErrorResponse"
+                    }
+                  ],
+                  "title": "Response 422 Update Ticket Status"
                 }
               }
             },
-            "description": "Request validation failed."
+            "description": "Request validation or resolution summary is invalid."
           },
           "500": {
             "content": {

@@ -38,6 +38,7 @@ const EXACT_PAGE: TicketPage = {
       assignee: null,
       customer: null,
       customerWasVerified: false,
+      resolutionSummary: null,
       createdAt: new Date('2026-09-18T08:00:00Z'),
       updatedAt: new Date('2026-09-18T08:00:00Z'),
       resolvedAt: null,

@@ -289,6 +289,10 @@ def update_ticket_priority(
             "description": "Invalid status transition.",
             "model": ErrorResponse,
         },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Request validation or resolution summary is invalid.",
+            "model": ErrorResponse | ValidationErrorResponse,
+        },
     },
 )
 def update_ticket_status(
@@ -297,7 +301,12 @@ def update_ticket_status(
     ticket_service: Annotated[TicketService, Depends(get_ticket_service)],
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> TicketResponse:
-    return ticket_service.update_status(ticket_id, data.status, current_user)
+    return ticket_service.update_status(
+        ticket_id,
+        data.status,
+        current_user,
+        resolution_summary=data.resolution_summary,
+    )
 
 
 @router.patch(

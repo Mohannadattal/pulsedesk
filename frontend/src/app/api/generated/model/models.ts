@@ -45,6 +45,7 @@ export * from './response422LookupCustomerTicket';
 export * from './response422SearchCustomers';
 export * from './response422UpdateCustomer';
 export * from './response422UpdateTicketAssignment';
+export * from './response422UpdateTicketStatus';
 export * from './sessionType';
 export * from './ticketAssignmentUpdate';
 export * from './ticketCategoryUpdate';

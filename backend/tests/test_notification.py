@@ -246,7 +246,12 @@ class NotificationTests(unittest.TestCase):
             service = self._ticket_service(db)
             admin = self._user_from(db, 3)
             service.update_status(100, TicketStatus.IN_PROGRESS, admin)
-            service.update_status(100, TicketStatus.RESOLVED, admin)
+            service.update_status(
+                100,
+                TicketStatus.RESOLVED,
+                admin,
+                resolution_summary="The request was completed.",
+            )
             service.update_status(100, TicketStatus.CLOSED, admin)
             service.update_status(102, TicketStatus.IN_PROGRESS, admin)
 

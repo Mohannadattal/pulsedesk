@@ -31,6 +31,8 @@ import { Response422ListTickets } from '../model/response422ListTickets';
 // @ts-ignore
 import { Response422UpdateTicketAssignment } from '../model/response422UpdateTicketAssignment';
 // @ts-ignore
+import { Response422UpdateTicketStatus } from '../model/response422UpdateTicketStatus';
+// @ts-ignore
 import { TicketAssignmentUpdate } from '../model/ticketAssignmentUpdate';
 // @ts-ignore
 import { TicketCategoryUpdate } from '../model/ticketCategoryUpdate';

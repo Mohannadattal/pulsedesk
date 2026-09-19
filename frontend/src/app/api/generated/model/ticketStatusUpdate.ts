@@ -10,5 +10,6 @@
 import { TicketStatus } from './ticketStatus';
 
 export interface TicketStatusUpdate {
+  resolution_summary?: string | null;
   status: TicketStatus;
 }

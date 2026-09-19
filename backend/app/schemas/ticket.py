@@ -96,6 +96,25 @@ class TicketPriorityUpdate(TicketMutationRequest):
 
 class TicketStatusUpdate(TicketMutationRequest):
     status: TicketStatus
+    resolution_summary: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("resolution_summary", mode="before")
+    @classmethod
+    def strip_resolution_summary(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def validate_resolution_summary(self) -> Self:
+        if self.status == TicketStatus.RESOLVED:
+            if not self.resolution_summary:
+                raise ValueError(
+                    "Resolution summary is required when resolving a ticket."
+                )
+        elif self.resolution_summary is not None:
+            raise ValueError(
+                "Resolution summary is only accepted when resolving a ticket."
+            )
+        return self
 
 
 class TicketCategoryUpdate(TicketMutationRequest):
@@ -121,6 +140,7 @@ class TicketResponse(BaseModel):
     ticket_number: str
     title: str
     description: str
+    resolution_summary: str | None
     status: TicketStatus
     priority: TicketPriority
     category_id: int

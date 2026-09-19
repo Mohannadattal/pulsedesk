@@ -22,6 +22,7 @@ const TICKET: Ticket = {
   assignee: { id: 21, name: 'Former Agent' },
   customer: null,
   customerWasVerified: false,
+  resolutionSummary: null,
   createdAt: new Date('2026-09-15T08:00:00Z'),
   updatedAt: new Date('2026-09-15T08:00:00Z'),
   resolvedAt: null,
@@ -34,6 +35,13 @@ const UPDATED: Ticket = {
   priority: TicketPriority.HIGH,
   assignee: null,
   updatedAt: new Date('2026-09-15T09:00:00Z'),
+};
+
+const RESOLVED: Ticket = {
+  ...UPDATED,
+  status: TicketStatus.RESOLVED,
+  resolutionSummary: 'Replaced the damaged network cable.',
+  resolvedAt: new Date('2026-09-15T10:00:00Z'),
 };
 
 describe('TicketOperationsComponent', () => {
@@ -137,6 +145,121 @@ describe('TicketOperationsComponent', () => {
     expect(tickets.updatePriority).toHaveBeenCalledWith(17, TicketPriority.URGENT);
     expect(tickets.updateCategory).toHaveBeenCalledWith(17, 6);
     expect(tickets.updateStatus).toHaveBeenCalledWith(17, TicketStatus.IN_PROGRESS);
+  });
+
+  it('opens a required customer-facing summary form before resolving', async () => {
+    await render({ ...TICKET, status: TicketStatus.IN_PROGRESS });
+
+    click('Move to Resolved');
+
+    expect(text()).toContain('Resolve ticket');
+    expect(text()).toContain('customer-facing');
+    expect(fixture.componentInstance['resolutionSummary'].hasError('required')).toBe(true);
+    expect(resolveSubmitButton().disabled).toBe(true);
+    expect(tickets.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('rejects whitespace-only and over-2,000-character summaries without truncating input', async () => {
+    await render({ ...TICKET, status: TicketStatus.IN_PROGRESS });
+    click('Move to Resolved');
+
+    setResolution('   \n  ');
+    expect(fixture.componentInstance['resolutionSummary'].hasError('whitespace')).toBe(true);
+    expect(resolveSubmitButton().disabled).toBe(true);
+
+    const oversized = 'x'.repeat(2_001);
+    setResolution(oversized);
+    expect(fixture.componentInstance['resolutionSummary'].hasError('maxlength')).toBe(true);
+    expect((fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement).value).toBe(
+      oversized,
+    );
+    expect(text()).toContain('2001 / 2000');
+    expect(tickets.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('submits one trimmed resolution and blocks duplicate submission while in flight', async () => {
+    const pending = new Subject<Ticket>();
+    tickets.updateStatus.mockReturnValue(pending);
+    await render({ ...TICKET, status: TicketStatus.IN_PROGRESS });
+    click('Move to Resolved');
+    setResolution('  Replaced the damaged network cable.  ');
+
+    submitResolution();
+    fixture.componentInstance['resolveTicket']();
+
+    expect(tickets.updateStatus).toHaveBeenCalledOnce();
+    expect(tickets.updateStatus).toHaveBeenCalledWith(
+      17,
+      TicketStatus.RESOLVED,
+      'Replaced the damaged network cable.',
+    );
+    expect(resolveSubmitButton().disabled).toBe(true);
+  });
+
+  it('closes and resets the form after the returned resolved ticket is emitted', async () => {
+    tickets.updateStatus.mockReturnValue(of(RESOLVED));
+    await render({ ...TICKET, status: TicketStatus.IN_PROGRESS });
+    const emitted = vi.fn((ticket: Ticket) => fixture.componentRef.setInput('ticket', ticket));
+    fixture.componentInstance.ticketUpdated.subscribe(emitted);
+    click('Move to Resolved');
+    setResolution('Replaced the damaged network cable.');
+
+    submitResolution();
+    fixture.detectChanges();
+
+    expect(emitted).toHaveBeenCalledWith(RESOLVED);
+    expect(fixture.nativeElement.querySelector('.resolution-form')).toBeNull();
+    expect(fixture.componentInstance['resolutionSummary'].value).toBe('');
+    expect(text()).toContain('Ticket resolved.');
+    expect(text()).toContain('Move to Closed');
+    expect(text()).not.toContain('Email sent');
+  });
+
+  it('keeps the prior ticket and typed summary visible after resolution fails', async () => {
+    tickets.updateStatus.mockReturnValue(
+      throwError(() => new AppError('validation', 422, 'INVALID_RESOLUTION_SUMMARY')),
+    );
+    await render({ ...TICKET, status: TicketStatus.IN_PROGRESS });
+    const emitted = vi.fn();
+    fixture.componentInstance.ticketUpdated.subscribe(emitted);
+    click('Move to Resolved');
+    setResolution('Customer can now sign in.');
+
+    submitResolution();
+
+    expect(emitted).not.toHaveBeenCalled();
+    expect(fixture.componentInstance['resolutionFormOpen']()).toBe(true);
+    expect(fixture.componentInstance['resolutionSummary'].value).toBe('Customer can now sign in.');
+    expect(text()).toContain('between 1 and 2,000 characters');
+    expect(text()).toContain('Current status: In Progress');
+    expect(text()).not.toContain('Ticket resolved.');
+  });
+
+  it('keeps the resolution form and summary after a transport failure', async () => {
+    tickets.updateStatus.mockReturnValue(throwError(() => new AppError('unavailable', 503)));
+    await render({ ...TICKET, status: TicketStatus.IN_PROGRESS });
+    const emitted = vi.fn();
+    fixture.componentInstance.ticketUpdated.subscribe(emitted);
+    click('Move to Resolved');
+    setResolution('Customer can now sign in.');
+
+    submitResolution();
+
+    expect(emitted).not.toHaveBeenCalled();
+    expect(fixture.componentInstance['resolutionFormOpen']()).toBe(true);
+    expect(fixture.componentInstance['resolutionSummary'].value).toBe('Customer can now sign in.');
+    expect(text()).toContain('temporarily unavailable');
+    expect(text()).toContain('Current status: In Progress');
+    expect(text()).not.toContain('Ticket resolved.');
+  });
+
+  it('closes a resolved ticket directly without a new summary', async () => {
+    await render(RESOLVED);
+
+    click('Move to Closed');
+
+    expect(fixture.nativeElement.querySelector('.resolution-form')).toBeNull();
+    expect(tickets.updateStatus).toHaveBeenCalledWith(17, TicketStatus.CLOSED);
   });
 
   it('uses one gate to prevent simultaneous field mutations', async () => {
@@ -362,5 +485,30 @@ describe('TicketOperationsComponent', () => {
   function text(): string {
     fixture.detectChanges();
     return fixture.nativeElement.textContent as string;
+  }
+
+  function setResolution(value: string): void {
+    const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.value = value;
+    textarea.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function resolveSubmitButton(): HTMLButtonElement {
+    const buttons = [...fixture.nativeElement.querySelectorAll('button')] as HTMLButtonElement[];
+    const button = buttons.find(
+      (candidate) =>
+        candidate.type === 'submit' && candidate.textContent?.includes('Resolve ticket'),
+    );
+    expect(button).toBeTruthy();
+    return button as HTMLButtonElement;
+  }
+
+  function submitResolution(): void {
+    const form = fixture.nativeElement.querySelector('.resolution-form') as HTMLFormElement;
+    const event = new Event('submit', { bubbles: true, cancelable: true });
+    form.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    fixture.detectChanges();
   }
 });

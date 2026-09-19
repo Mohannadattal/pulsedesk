@@ -106,9 +106,17 @@ export class TicketsDataAccess {
       .pipe(map(mapTicket));
   }
 
-  updateStatus(ticketId: number, status: TicketStatus): Observable<Ticket> {
+  updateStatus(
+    ticketId: number,
+    status: TicketStatus,
+    resolutionSummary?: string,
+  ): Observable<Ticket> {
+    const request =
+      status === TicketStatus.RESOLVED
+        ? { status, resolution_summary: resolutionSummary }
+        : { status };
     return this.ticketsApi
-      .updateTicketStatus(ticketId, { status }, 'body', false, { transferCache: false })
+      .updateTicketStatus(ticketId, request, 'body', false, { transferCache: false })
       .pipe(map(mapTicket));
   }
 

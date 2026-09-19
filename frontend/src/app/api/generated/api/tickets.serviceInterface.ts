@@ -15,6 +15,7 @@ import { ErrorResponse } from '../model/models';
 import { Response422CreateTicket } from '../model/models';
 import { Response422ListTickets } from '../model/models';
 import { Response422UpdateTicketAssignment } from '../model/models';
+import { Response422UpdateTicketStatus } from '../model/models';
 import { TicketAssignmentUpdate } from '../model/models';
 import { TicketCategoryUpdate } from '../model/models';
 import { TicketCommentCreate } from '../model/models';

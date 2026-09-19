@@ -19,6 +19,7 @@ export interface Ticket {
   readonly assignee: DisplayReference | null;
   readonly customer: (DisplayReference & { readonly customerNumber: string }) | null;
   readonly customerWasVerified: boolean;
+  readonly resolutionSummary: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly resolvedAt: Date | null;
@@ -54,6 +55,7 @@ export function mapTicket(dto: TicketResponse): Ticket {
         }
       : null,
     customerWasVerified: dto.customer_was_verified,
+    resolutionSummary: dto.resolution_summary,
     createdAt: parseUtcTimestamp(dto.created_at),
     updatedAt: parseUtcTimestamp(dto.updated_at),
     resolvedAt: dto.resolved_at ? parseUtcTimestamp(dto.resolved_at) : null,

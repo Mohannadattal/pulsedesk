@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
@@ -5,6 +7,7 @@ import { vi } from 'vitest';
 import { CategoriesApi } from '../../../api/generated/api/categories.service';
 import { TicketsApi } from '../../../api/generated/api/tickets.service';
 import { UsersApi } from '../../../api/generated/api/users.service';
+import { BASE_PATH } from '../../../api/generated/variables';
 import { CommentVisibility } from '../../../api/generated/model/commentVisibility';
 import { TicketPriority } from '../../../api/generated/model/ticketPriority';
 import { TicketSearchKind } from '../../../api/generated/model/ticketSearchKind';
@@ -310,6 +313,10 @@ describe('TicketsDataAccess', () => {
       created_by: { id: 9, first_name: 'Eli', last_name: 'Employee' },
       assigned_to_id: 88,
       assigned_to: { id: 88, first_name: 'Former', last_name: 'Agent' },
+      customer_id: null,
+      customer: null,
+      customer_was_verified: false,
+      resolution_summary: null,
       created_at: '2026-09-15T08:00:00Z',
       updated_at: '2026-09-15T09:00:00Z',
       resolved_at: null,
@@ -324,6 +331,10 @@ describe('TicketsDataAccess', () => {
     const assigned = await firstValueFrom(dataAccess.updateAssignment(17, 88));
     await firstValueFrom(dataAccess.updateAssignment(17, null));
     await firstValueFrom(dataAccess.updateStatus(17, TicketStatus.IN_PROGRESS));
+    await firstValueFrom(
+      dataAccess.updateStatus(17, TicketStatus.RESOLVED, 'Replaced the failed cable.'),
+    );
+    await firstValueFrom(dataAccess.updateStatus(17, TicketStatus.CLOSED));
     await firstValueFrom(dataAccess.updatePriority(17, TicketPriority.HIGH));
     await firstValueFrom(dataAccess.updateCategory(17, 4));
 
@@ -343,9 +354,26 @@ describe('TicketsDataAccess', () => {
       false,
       { transferCache: false },
     );
-    expect(ticketsApi.updateTicketStatus).toHaveBeenCalledWith(
+    expect(ticketsApi.updateTicketStatus).toHaveBeenNthCalledWith(
+      1,
       17,
       { status: TicketStatus.IN_PROGRESS },
+      'body',
+      false,
+      { transferCache: false },
+    );
+    expect(ticketsApi.updateTicketStatus).toHaveBeenNthCalledWith(
+      2,
+      17,
+      { status: TicketStatus.RESOLVED, resolution_summary: 'Replaced the failed cable.' },
+      'body',
+      false,
+      { transferCache: false },
+    );
+    expect(ticketsApi.updateTicketStatus).toHaveBeenNthCalledWith(
+      3,
+      17,
+      { status: TicketStatus.CLOSED },
       'body',
       false,
       { transferCache: false },
@@ -423,5 +451,84 @@ describe('TicketsDataAccess', () => {
       false,
       { transferCache: false },
     );
+  });
+});
+
+describe('TicketsDataAccess status request integration', () => {
+  let http: HttpTestingController;
+  let dataAccess: TicketsDataAccess;
+
+  const response = {
+    id: 13,
+    ticket_number: 'TKT-YMBILQQRBFWBVZBC',
+    title: 'Customer ticket',
+    description: 'Needs support',
+    status: TicketStatus.IN_PROGRESS,
+    priority: TicketPriority.MEDIUM,
+    category_id: 4,
+    category: { id: 4, name: 'Hardware' },
+    created_by_id: 9,
+    created_by: { id: 9, first_name: 'Eli', last_name: 'Employee' },
+    assigned_to_id: 21,
+    assigned_to: { id: 21, first_name: 'Daniel', last_name: 'Weber' },
+    customer_id: null,
+    customer: null,
+    customer_was_verified: false,
+    resolution_summary: null,
+    created_at: '2026-09-15T08:00:00Z',
+    updated_at: '2026-09-15T09:00:00Z',
+    resolved_at: null,
+    closed_at: null,
+  };
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        TicketsDataAccess,
+        TicketsApi,
+        { provide: CategoriesApi, useValue: {} },
+        { provide: UsersApi, useValue: {} },
+        { provide: BASE_PATH, useValue: 'http://api.test' },
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    dataAccess = TestBed.inject(TicketsDataAccess);
+  });
+
+  afterEach(() => http.verify());
+
+  it('sends the generated client exactly the resolving body and omits the summary otherwise', async () => {
+    const inProgress = firstValueFrom(dataAccess.updateStatus(13, TicketStatus.IN_PROGRESS));
+    const inProgressRequest = http.expectOne('http://api.test/api/v1/tickets/13/status');
+    expect(inProgressRequest.request.method).toBe('PATCH');
+    expect(inProgressRequest.request.body).toEqual({ status: TicketStatus.IN_PROGRESS });
+    inProgressRequest.flush(response);
+    await inProgress;
+
+    const resolved = firstValueFrom(
+      dataAccess.updateStatus(13, TicketStatus.RESOLVED, 'Replaced the failed cable.'),
+    );
+    const resolvedRequest = http.expectOne('http://api.test/api/v1/tickets/13/status');
+    expect(resolvedRequest.request.method).toBe('PATCH');
+    expect(resolvedRequest.request.body).toEqual({
+      status: TicketStatus.RESOLVED,
+      resolution_summary: 'Replaced the failed cable.',
+    });
+    resolvedRequest.flush({
+      ...response,
+      status: TicketStatus.RESOLVED,
+      resolution_summary: 'Replaced the failed cable.',
+      resolved_at: '2026-09-15T10:00:00Z',
+    });
+    await resolved;
+
+    const closed = firstValueFrom(dataAccess.updateStatus(13, TicketStatus.CLOSED));
+    const closedRequest = http.expectOne('http://api.test/api/v1/tickets/13/status');
+    expect(closedRequest.request.method).toBe('PATCH');
+    expect(closedRequest.request.body).toEqual({ status: TicketStatus.CLOSED });
+    closedRequest.flush({ ...response, status: TicketStatus.CLOSED });
+    await closed;
   });
 });

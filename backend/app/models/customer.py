@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base
 
 if TYPE_CHECKING:
+    from app.models.customer_email_delivery import CustomerEmailDelivery
     from app.models.customer_verification import CustomerVerification
     from app.models.ticket import Ticket
 
@@ -69,4 +70,8 @@ class Customer(Base):
     tickets: Mapped[list["Ticket"]] = relationship(
         back_populates="customer",
         foreign_keys="Ticket.customer_id",
+    )
+    email_deliveries: Mapped[list["CustomerEmailDelivery"]] = relationship(
+        back_populates="customer",
+        foreign_keys="CustomerEmailDelivery.customer_id",
     )

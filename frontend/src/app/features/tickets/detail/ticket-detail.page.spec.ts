@@ -23,6 +23,7 @@ const TICKET: Ticket = {
   assignee: null,
   customer: null,
   customerWasVerified: false,
+  resolutionSummary: null,
   createdAt: new Date('2026-09-15T08:00:00Z'),
   updatedAt: new Date('2026-09-15T08:00:00Z'),
   resolvedAt: null,
@@ -34,6 +35,13 @@ const UPDATED: Ticket = {
   status: TicketStatus.IN_PROGRESS,
   priority: TicketPriority.HIGH,
   updatedAt: new Date('2026-09-15T09:00:00Z'),
+};
+
+const RESOLVED: Ticket = {
+  ...UPDATED,
+  status: TicketStatus.RESOLVED,
+  resolutionSummary: 'Customer access was restored and verified.',
+  resolvedAt: new Date('2026-09-15T10:00:00Z'),
 };
 
 describe('TicketDetailPage authoritative ticket state', () => {
@@ -79,6 +87,18 @@ describe('TicketDetailPage authoritative ticket state', () => {
     fixture.componentInstance['replaceTicket'](recovered);
 
     expect(fixture.componentInstance['state']()).toEqual({ kind: 'loaded', ticket: recovered });
+  });
+
+  it('stores the resolved response, including its customer-facing summary', async () => {
+    await render(of(UPDATED));
+
+    fixture.componentInstance['mutationSucceeded'](RESOLVED);
+
+    expect(fixture.componentInstance['state']()).toEqual({ kind: 'loaded', ticket: RESOLVED });
+    expect(
+      (fixture.componentInstance['state']() as { kind: 'loaded'; ticket: Ticket }).ticket
+        .resolutionSummary,
+    ).toBe('Customer access was restored and verified.');
   });
 
   it('does not let an older retry response restore a replaced ticket', async () => {

@@ -40,3 +40,7 @@ class DuplicateCustomerNumberError(Exception):
 
 class DuplicatePendingPasswordResetRequestError(Exception):
     """Raised when a pending reset request already exists for the user."""
+
+
+class DuplicateCustomerEmailIdempotencyKeyError(Exception):
+    """Raised when a customer email event has already been staged."""
